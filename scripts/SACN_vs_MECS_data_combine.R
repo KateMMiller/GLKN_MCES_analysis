@@ -2,7 +2,7 @@
 # Checking parameters b/t GLKN and MECS
 #---------------------------------------
 # GLKN sites vs MCES closest sites
-# SACN_STCR_20   = 82000100-02; 1.2km
+# SACN_STCR_20.0   = 82000100-02; 1.2km
 #                  82000100-03
 # SACN_STCR_15.8 = 82000100-04; 0.25km
 #                  82000100-05, 82000100-06
@@ -13,15 +13,37 @@ library(waterGLKN)
 
 params <- read.csv("../data/GLKN_water/MECS/GLKN_vs_MECS_params_list_final.csv")
 
-importData(type = 'zip', filepath = ("../data/GLKN_water/records-2309369.zip"))
-lksc <- c("SACN_STCR_20", "SACN_STCR_15.8", "SACN_STCR_2.0")
-sacn <- getResults(park = "SACN", site = lksc) |>
+river_zip = ("../data/GLKN_water/records-2309369.zip")
+lake_zip = ("../data/GLKN_water/records-2306516.zip")
+importData(type = 'zip', filepath = c(river_zip, lake_zip))
+
+res <- GLKN_WQ$Results
+res$park <- substr(res$Location_ID, 1, 4)
+res$year <- as.numeric(substr(res$Activity_Start_Date, 1, 4))
+lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
+sacn <- res[res$park == "SACN" & res$Location_ID %in% lksc & res$Activity_Group_Type == "Field Set",]
+table(sacn$Location_ID, sacn$year)
+#table(sacn$param_name, sacn$year)
+
+sacn_loc <- getLocations(park = "SACN", active = T)
+
+sacn <- getResults(park = "SACN", site = lksc, #sample_type = "VS",
+                   parameter = 'all',
+                   months = 1:12,
+                   sample_depth = 'all',
+                   include_censored = T) |>
   select(Org_Code, Park_Code, Location_ID, Location_Name, sample_date, doy, year, month,
          depth_cat = Activity_Relative_Depth, depth = Activity_Depth, depth_unit = Activity_Depth_Unit,
          PARAMETER = Characteristic_Name, param_name, value, unit = Result_Unit)
+
+table(sacn$Location_ID)
+
+# Missing about 33 observations between original resutls and getResults.
+
 sacn$param_name[sacn$param_name == "ChlA_ppb"] <- "ChlA_ugL"
 sacn$unit[sacn$param_name == "ChlA_ppb"] <- "ug/l"
-table(sacn$param_name, useNA = 'always')
+
+table(sacn$year)
 
 mecs <- read.csv("../data/GLKN_water/MECS/GLKN_MCES_20060101_20250331.csv")
 mecs$Units[mecs$PARAMETER == "pH"] <- "None"
@@ -50,7 +72,12 @@ sacn2 <- sacn |> filter(param_name %in% mecs_keep$param_name)
 full_dat <- rbind(sacn2, mecs_join)
 table(full_dat$Org_Code, full_dat$param_name) # only params with samples in common across both
 
-write.csv(full_dat, "../data/GLKN_water/MECS/GLKN_MCES_combined_data.csv", row.names = F)
+write.csv(full_dat, "./data/GLKN_water/MECS/GLKN_MCES_combined_data.csv", row.names = F)
 
 
+# sacn_riv <- read.csv("../data/GLKN_water/Results_River_SACN.csv")
+# sacn_riv$year <- substr(as.Date(sacn_riv$Activity_Start_Date, format = "%m/%d/%Y"), 1, 4)
+# head(sacn_riv)
+#
+# table(sacn_riv$year, useNA = 'always')
 
