@@ -7,6 +7,7 @@ title: "SACN Redundancy Analysis"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+options(knitr.kable.NA = '')
 options(width = 10)
 ```
 
@@ -37,6 +38,8 @@ Once open in R Studio. Press Control + A to select all of the code. Then Control
 The params csv was developed by GLKN staff manually matching parameter names between GLKN and METC datasets. The csv is posted on the GitHub repo. Note that the waterGLKN package already adds a column of parameter abbreviations following the same naming convention as the params.csv below.
 ```{r results = 'hide', warning = F, message = FALSE}
 library(tidyverse)
+library(knitr)
+library(kableExtra)
 params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
 ```
 
@@ -125,27 +128,43 @@ metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.
 
 # SACN- only keep METC params
 sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
+table(sacn$param_name, sacn$Location_ID)
 
-full_dat <- rbind(sacn2, metc_join)
+full_dat <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2024) # GLKN sites only have data from 2007 - 2023
 ```
 
-#### Review combined data
+### Review combined data
 ```{r}
-table(full_dat$Org_Code, full_dat$param_name) # only params with samples in common across both
-range(full_dat$sample_date[full_dat$Org_Code == "METC"])
-range(full_dat$sample_date[full_dat$Org_Code == "GLKN"])
-# GLKN STCR data stops at 11/2023
+full_dat$site_order <- factor(full_dat$Location_ID, 
+                              levels = c("METC_STCR_23.6", "METC_STCR_23.4", "METC_STCR_22.5", "METC_STCR_22.3",
+                                         "SACN_STCR_20.0", "METC_STCR_16.6", "SACN_STCR_15.8", "METC_STCR_15.3",
+                                         "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
 
-# METC_STCR_23.4 had very narrow periods of record and weren't replacement sites
-# for others with longer records (eg 23.6). Dropping for analysis.
-table(full_dat$Location_ID, full_dat$year)
-full_dat2 <- full_dat |> #filter(!Location_ID %in% c("METC_STCR_23.4")) |>
-  filter(year < 2024)
+params_site_year <- full_dat |> group_by(Site = site_order, Parameter = param_name, Year = year) |> 
+  summarize(Num_Samps = sum(!is.na(value)), .groups = 'drop') |> 
+  arrange(Site, Parameter, Year)
 
-table(full_dat$Location_ID, full_dat$param_name)
-# It appears that METC_STCR_12.4, METC_STCR_15.3, METC_STCR_16.6, METC_STCR_22.3, METC_STCR_22.5,
-# only ever collect SecchiDepth
-write.csv(full_dat2, "./data/GLKN_METC_combined_data.csv", row.names = F)
+params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |> 
+  pivot_wider(names_from = Site, values_from = "Num_Samps") |> 
+  arrange(Parameter, Year)
+
+cols <- names(params_site_year_wide[,3:ncol(params_site_year_wide)])
+params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
+
+psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c', 
+  cap = "Sampling matrix by site for every parameter and year. Values are number of non-QAQC samples within a year.") |> 
+  kable_styling(fixed_thead = T, bootstrap_options = c("condensed"), full_width = F) |> 
+  column_spec(1:ncol(params_site_year_wide), border_left = T, border_right = T) |> 
+  collapse_rows(1, valign = 'top') 
+
+```
+
+```{r echo = F}
+psy_tab
+```
+
+```{r eval = F}
+write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
 
 
 ```
