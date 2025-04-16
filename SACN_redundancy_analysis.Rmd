@@ -10,19 +10,51 @@ knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
 options(width = 10)
 ```
 
-## Combining datasets
-```{r}
-library(tidyverse)
-#devtools::install_github("katemmiller/waterGLKN")
+## Lake St. Croix Water Quality Redundancy Analysis {.tabset}
+This document compares data collected in Lake St. Croix by the Great Lakes Network (GLKN) as part of their <a href="https://www.nps.gov/im/glkn/water-quality-rivers.htm">Water Quality (Rivers)</a> monitoring protocol with data collected by the <a href="https://metrocouncil.org/About-Us/What-We-Do/Departments/Environmental-Services.aspx">Metropolitan Council's Environmental Services (METC) Department</a>. 
+
+For GLKN, we used the most recently published <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369">2006 -- 2024 Large Rivers Water Quality Monitoring Data</a> Data Package (IRMA record 2309369). For METC, we downloaded all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. 
+
+All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
+
+### Code Prep
+#### Install waterGLKN R package for easier import and querying of GLKN water data. Must also have RTools44 installed, which can be installed via the Software Center, and the devtools R package. 
+```{r echo = T, eval = F}
+devtools::install_github("katemmiller/waterGLKN")
 library(waterGLKN)
+```
 
-params <- read.csv("./data/GLKN_vs_METC_params_list_final.csv")
+```{r include = F}
+library(waterGLKN)
+```
 
-# GLKN data compile
+#### Troubleshooting github-installed packages:
+If you’re unable to install the R package via GitHub (often an error about permission being denied, download the following script and open it in R: <a href="https://doimspp-my.sharepoint.com/:u:/g/personal/kmmiller_nps_gov/ETaknusoEfVOs9tbIbx6QYEBre0WI-_xxi-C0M3JCX_xfw?e=3XAXiC">fix_TLS_inspection.R</a>
+
+Once open in R Studio. Press Control + A to select all of the code. Then Control + Enter to run all of the code. Assuming you don’t return any errors, you should now be able to install from GitHub. Repeat the install_github code above, which hopefully will successful install waterGLKN package.  
+
+#### Load other dependencies and imports
+The params csv was developed by GLKN staff manually matching parameter names between GLKN and METC datasets. The csv is posted on the GitHub repo. Note that the waterGLKN package already adds a column of parameter abbreviations following the same naming convention as the params.csv below.
+```{r results = 'hide', warning = F, message = FALSE}
+library(tidyverse)
+params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
+```
+
+### Compile Data
+#### Download Data Package and import into R
+Download the latest <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369"> GLKN Rivers Data Package</a>. The easiest way to do it is to download all as a zip. The file path below is where that zip is stored on Kate's machine and the name of the zip file. Then import the data package into R using the waterGLKN function `importData()`.
+```{r results = 'hide'}
+library(waterGLKN)
 river_zip = "../data/GLKN_water/records-2309369.zip"
 importData(type = 'zip', filepath = river_zip)
+```
 
+
+#### Filter Results.csv by Lake St. Croix sites and prepare data for binding with METC data. 
+```{r results = 'hide'}
+# Site list
 lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
+# pull in all results for Lk St. Croix sites
 sacn <- getResults(park = "SACN", site = lksc, sample_type = "VS",
                    parameter = 'all',
                    months = 1:12,
@@ -34,14 +66,21 @@ sacn <- getResults(park = "SACN", site = lksc, sample_type = "VS",
 
 sacn$param_name[sacn$param_name == "ChlA_ppb"] <- "ChlA_ugL"
 sacn$unit[sacn$param_name == "ChlA_ppb"] <- "ug/l"
-head(params)
-head(sacn)
-sacn2 <- left_join(sacn, params, by = c("PARAMETER" = 'Parameter', "unit" = "Units"))
-table(sacn2$param_name, useNA = 'always')
 
+# convert depth in ft to m (they're actually all NULL, but in case other sites are in ft for later analysis)
+sacn$depth[!is.na(sacn$depth) & sacn$depth_unit == "ft"] <- 
+  sacn$depth[!is.na(sacn$depth) & sacn$depth_unit == "ft"] * 0.3048
+sacn$depth_unit[sacn$depth_unit == "ft"] <- "m"
+```
+
+#### Prepare METC data for binding with GLKN data
+Download all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. The data for this analysis were downloaded on 3/18/2025.
+```{r results = 'hide'}
 # metc data from webserver
-metc <- read.csv("./data/2025-03-18_1359_56_MCES_EIMS_data.csv")
-metc1 <- metc %>%
+metc <- read.csv("./data/local/2025-03-18_1359_56_MCES_EIMS_data.csv")
+
+# name sites based on Rick's stream distance method
+metc1 <- metc |> 
   mutate(Location_ID = case_when(grepl("SC0003", STATION_ID) ~ as.character("METC_STCR_0.1"),
                                  grepl("SC0233", STATION_ID) ~ as.character("METC_STCR_23.6"),
                                  grepl("SC0234", STATION_ID) ~ as.character("METC_STCR_23.4"),
@@ -53,11 +92,6 @@ metc1 <- metc %>%
                                  grepl("82000100-01", STATION_ID) ~ as.character("METC_STCR_22.3"))) |>
   filter(!is.na(Location_ID)) # UM8128 is teh only station that doesn't get matched with Rick's new LocIDs
 
-# metc1$UNITS[metc1$PARAMETER == "pH"] <- "None"
-# metc1$UNITS[metc1$UNITS == "mg/L"] <- "mg/l"
-# metc1$UNITS[metc1$UNITS == "ug/L"] <- "ug/l"
-# metc1$UNITS[metc1$UNITS == "mg/L_CaCO3"] <- "mg/l_CaCO3"
-
 metc1$Org_Code <- "METC"
 metc1$Park_Code <- "METC"
 metc1$sample_date <- format(as.Date(metc1$START_DATE_TIME, format = "%m/%d/%Y %H:%M"), format = "%Y-%m-%d")
@@ -66,7 +100,6 @@ metc1$month <- as.numeric(substr(metc1$sample_date, 6, 7))
 metc1$doy <- as.numeric(format(as.Date(metc1$sample_date, format = "%Y-%m-%d"), "%j"))
 metc1$depth_unit = "m"
 metc1$depth_cat <- ifelse(metc1$SAMPLE_DEPTH_m <= 1, "surface", NA_character_)
-head(metc1)
 
 metc2 <- metc1 |>
   mutate(value = ifelse(PARAMETER %in% c( "Chlorophyll-a, Pheo-Corrected",
@@ -77,17 +110,27 @@ metc2 <- metc1 |>
   select(Org_Code, Park_Code, Location_ID, Location_Name = NAME, sample_date, doy, year, month,
          depth_cat, depth = SAMPLE_DEPTH_m, depth_unit, PARAMETER, value, units = UNITS)
 
+# Join METC data with param.csv for parameter abbreviations (param_name)
 metc_join <- left_join(metc2, params, by = c("PARAMETER" = "Parameter", "units" = "Units")) |>
   filter(!is.na(New_Name)) |>
   select(Org_Code, Park_Code, Location_ID, Location_Name, sample_date, doy, year, month, depth_cat, depth,
          depth_unit, PARAMETER, param_name = New_Name, value, unit= units)
 
+```
+
+Keep only the parameters in common between GLKN and METC, then use row binding to combine the two datasets together.
+```{r results = 'hide'}
+# Determine parameters from METC that are on the params.csv and drop those missing.
 metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.na(value))) |> select(param_name) |> unique() |> c()
 
-# 
+# SACN- only keep METC params
 sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
 
 full_dat <- rbind(sacn2, metc_join)
+```
+
+#### Review combined data
+```{r}
 table(full_dat$Org_Code, full_dat$param_name) # only params with samples in common across both
 range(full_dat$sample_date[full_dat$Org_Code == "METC"])
 range(full_dat$sample_date[full_dat$Org_Code == "GLKN"])
