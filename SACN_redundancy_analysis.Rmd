@@ -158,19 +158,42 @@ params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |>
 cols <- names(params_site_year_wide[,3:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
 
+# heat map seems easier, so not printing this to markdown
 psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c', 
   cap = "Sampling matrix by site for every parameter and year. Values are number of non-QAQC samples within a year. Site codes start with 'METC' for Metropolitan Councial sites, and 'SACN' for GLKN-monitored sites. Numbers indicate the stream miles.") |> 
   kable_styling(fixed_thead = T, bootstrap_options = c("condensed"), full_width = F) |> 
   column_spec(1:ncol(params_site_year_wide), border_left = T, border_right = T) |> 
   collapse_rows(1, valign = 'top') 
 
+params_site_year1 <- params_site_year |> mutate(num_samps_bin = case_when(between(Num_Samps, 1, 5) ~ 1,
+                                                                          between(Num_Samps, 6, 10) ~ 2,
+                                                                          between(Num_Samps, 11, 15) ~ 3,
+                                                                          between(Num_Samps, 16, 20) ~ 4,
+                                                                          Num_Samps > 20 ~ 5)) |> 
+  filter(Num_Samps > 0)
+
+# Create heat map of sampling intensity
+psy_plot <- 
+  ggplot(params_site_year1, aes(x = Site, y = Year)) +
+    geom_tile(aes(fill = num_samps_bin), color = 'grey') + facet_wrap(~Parameter, ncol = 3) +
+    scale_fill_distiller(palette = "Spectral", guide = "legend", name = "Num. Sample Bins", 
+                         labels = c("Bin 1-5", "Bin 6-10", "Bin 11-15", "Bin 16-20", "Bin > 20")) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    labs(x = NULL) +
+    waterGLKN::theme_WQ() 
+
 ```
 
-```{r echo = F}
+```{r echo = F, eval = F}
 psy_tab
 ```
 
-```{r eval = F}
+```{r echo = F, out.width = "100%", fig.height = 10}
+psy_plot
+```
+
+
+```{r eval = F, echo = F}
 write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
 
 
