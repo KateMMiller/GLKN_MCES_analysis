@@ -12,6 +12,7 @@ options(width = 10)
 ```
 
 ## Lake St. Croix Water Quality Redundancy Analysis {.tabset}
+### Background
 This document compares data collected in Lake St. Croix by the Great Lakes Network (GLKN) as part of their <a href="https://www.nps.gov/im/glkn/water-quality-rivers.htm">Water Quality (Rivers)</a> monitoring protocol with data collected by the <a href="https://metrocouncil.org/About-Us/What-We-Do/Departments/Environmental-Services.aspx">Metropolitan Council's Environmental Services (METC) Department</a>. 
 
 For GLKN, we used the most recently published <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369">2006 -- 2024 Large Rivers Water Quality Monitoring Data</a> Data Package (IRMA record 2309369). For METC, we downloaded all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. 
@@ -19,7 +20,8 @@ For GLKN, we used the most recently published <a href="https://irma.nps.gov/Data
 All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
 
 ### Code Prep
-#### Install waterGLKN R package for easier import and querying of GLKN water data. Must also have RTools44 installed, which can be installed via the Software Center, and the devtools R package. 
+#### Install waterGLKN R package 
+The waterGLKN package is still a WIP, but at least makes it easier to import and query of GLKN water data using the format of the latest rivers and inland lakes data packages. Must also have RTools44 installed, which can be installed via the Software Center, and the devtools R package. 
 ```{r echo = T, eval = F}
 devtools::install_github("katemmiller/waterGLKN")
 library(waterGLKN)
@@ -93,7 +95,7 @@ metc1 <- metc |>
                                  grepl("82000100-05", STATION_ID) ~ as.character("METC_STCR_12.4"),
                                  grepl("82000100-04", STATION_ID) ~ as.character("METC_STCR_15.3"),
                                  grepl("82000100-01", STATION_ID) ~ as.character("METC_STCR_22.3"))) |>
-  filter(!is.na(Location_ID)) # UM8128 is teh only station that doesn't get matched with Rick's new LocIDs
+  filter(!is.na(Location_ID)) # UM8128 is the only station that doesn't get matched with Rick's new LocIDs
 
 metc1$Org_Code <- "METC"
 metc1$Park_Code <- "METC"
@@ -128,19 +130,24 @@ metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.
 
 # SACN- only keep METC params
 sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
-table(sacn$param_name, sacn$Location_ID)
+#table(sacn$param_name, sacn$Location_ID)
 
 full_dat <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2024) # GLKN sites only have data from 2007 - 2023
 ```
 
 ### Review combined data
 ```{r}
+full_dat$site_abbr <- factor(gsub("_STCR", "", full_dat$Location_ID),
+                             levels = c("METC_23.6", "METC_23.4", "METC_22.5", "METC_22.3",
+                                         "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
+                                          "METC_12.4",  "METC_11.3", "SACN_2.0", "METC_0.1"))
+
 full_dat$site_order <- factor(full_dat$Location_ID, 
                               levels = c("METC_STCR_23.6", "METC_STCR_23.4", "METC_STCR_22.5", "METC_STCR_22.3",
                                          "SACN_STCR_20.0", "METC_STCR_16.6", "SACN_STCR_15.8", "METC_STCR_15.3",
                                          "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
 
-params_site_year <- full_dat |> group_by(Site = site_order, Parameter = param_name, Year = year) |> 
+params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year) |> 
   summarize(Num_Samps = sum(!is.na(value)), .groups = 'drop') |> 
   arrange(Site, Parameter, Year)
 
@@ -152,7 +159,7 @@ cols <- names(params_site_year_wide[,3:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
 
 psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c', 
-  cap = "Sampling matrix by site for every parameter and year. Values are number of non-QAQC samples within a year.") |> 
+  cap = "Sampling matrix by site for every parameter and year. Values are number of non-QAQC samples within a year. Site codes start with 'METC' for Metropolitan Councial sites, and 'SACN' for GLKN-monitored sites. Numbers indicate the stream miles.") |> 
   kable_styling(fixed_thead = T, bootstrap_options = c("condensed"), full_width = F) |> 
   column_spec(1:ncol(params_site_year_wide), border_left = T, border_right = T) |> 
   collapse_rows(1, valign = 'top') 
