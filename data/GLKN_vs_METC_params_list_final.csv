@@ -1,6 +1,5 @@
 ﻿Parameter,SACN_SACR,Dataset,Units,New_Name,Note
 "Alkalinity, Total (total hydroxide+carbonate+bicarbonate)",5,GLKN,mg/l,Alkalinity_mgL,
-"Ammonia Nitrogen, Filtered",442,METC,mg/L,Alkalinity_mgL,
 "Total Alkalinity, Unfiltered",207,METC,mg/L_CaCO3,Alkalinity_mgL,
 Calcium,5,GLKN,mg/l,Ca_mgL,
 "Calcium, Filtered",600,METC,mg/L,Ca_mgL,
@@ -21,6 +20,7 @@ Magnesium,5,GLKN,mg/l,Mg_mgL,
 Nitrogen,12,GLKN,ug/l,N_ugL,
 Sodium,5,GLKN,mg/l,Na_mgL,
 "Sodium, Filtered",600,METC,mg/L,Na_mgL,
+"Ammonia Nitrogen, Filtered",442,METC,mg/L,NH4_ugL,
 "Nitrogen, Ammonium (NH4) as N",11,GLKN,ug/l,NH4_ugL,
 "Nitrogen, Nitrite (NO2) + Nitrate (NO3) as N",11,GLKN,ug/l,NO2+NO3_ugL,
 "Total Nitrate/Nitrite N, Unfiltered",551,METC,mg/L,NO2+NO3_ugL,convert to ug/L by mgl/1000
@@ -34,8 +34,8 @@ Secchi Depth,718,METC,m,Secchi_m,
 Silicate,5,GLKN,mg/l,Si_mgL,
 "Sulfate, Filtered",690,METC,mg/L,SO4_mgL,
 "Sulfur, sulfate (SO4) as SO4",5,GLKN,mg/l,SO4_mgL,
-Conductivity,1774,METC,umho/cm,SpecCond_uScm,umho/cm = uS/cm
 Specific conductance,84,GLKN,uS/cm,SpCond_uScm,
+Conductivity,1774,METC,umho/cm,SpecCond_uScm,umho/cm = uS/cm
 Temperature,2439,METC,deg C,TempWater_C,
 "Temperature, water",84,GLKN,deg C,TempWater_C,
 Transparency Tube,409,METC,cm,Transp_cm,
