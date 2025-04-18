@@ -3,8 +3,8 @@
 "Total Alkalinity, Unfiltered",207,METC,mg/L_CaCO3,Alkalinity_mgL,
 Calcium,5,GLKN,mg/l,Ca_mgL,
 "Calcium, Filtered",600,METC,mg/L,Ca_mgL,
-"Chlorophyll a, free of pheophytin",11,GLKN,ug/l,ChlA_ugl,
-"Chlorophyll-a, Pheo-Corrected",2231,METC,mg/L,ChlA_ugl,convert to ug/L by mgl/1000
+"Chlorophyll a, free of pheophytin",11,GLKN,ug/l,ChlA_ugL,
+"Chlorophyll-a, Pheo-Corrected",2231,METC,mg/L,ChlA_ugL,convert to ug/L by mgl/1000
 Chloride,5,GLKN,mg/l,Cl_mgL,
 "Chloride, Unfiltered",1546,METC,mg/L,Cl_mgL,
 Dissolved Oxygen,1819,METC,mg/L,DO_mgL,
