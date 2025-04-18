@@ -27,6 +27,7 @@ Sites included in this analysis are plotted in the map below.
 library(tidyverse)
 library(sf)
 library(leaflet)
+library(leaflet.extras)
 library(waterGLKN)
 river_zip = "../data/GLKN_water/records-2309369.zip"
 importData(type = 'zip', filepath = river_zip)
@@ -110,11 +111,11 @@ IconSet <- awesomeIconList(
 
 # Create leaflet map
 leaf <- 
-leaflet(height = 650, width = 900) |> 
+leaflet(height = 650, width = 800) |> 
     # set default view of park
     setView(lng = cent_long,
             lat = cent_lat, 
-            zoom = 12) |> 
+            zoom = 10.25) |> 
     # add map tiles
     addTiles(group="Map", urlTemplate = NPSbasic) |> 
     addTiles(group="Imagery", urlTemplate = ESRIimagery)  |> 
@@ -128,13 +129,15 @@ leaflet(height = 650, width = 900) |>
                       icon = ~IconSet[Org_Code], #style markers based on site type
                       # label on mouseover
                       label=as.character(samp_locs$Location_ID),
-                      labelOptions = labelOptions(noHide = T, textsize = "12px", textOnly = T, direction = 'auto',
-                                                  style = list("color" = "navy")),# offset = c(-10,-5)),
+                      labelOptions = labelOptions(noHide = T, textsize = "12px", textOnly = T, 
+                                                  direction = 'right', offset = c(10,-5),
+                                                  style = list("color" = "black", "font-weight" = "bold")),# offset = c(-10,-5)),
                       # popup on click
                       popup = paste0("<b>Site: ", samp_locs$Location_ID, "</b><br>",
                                      "<b>Org_Code: </b>", samp_locs$Org_Code, "<br>")) |> 
     # add legend
-    addControl(markerLegendHTML(IconSet = IconSet), position = "bottomleft")
+    addControl(markerLegendHTML(IconSet = IconSet), position = "bottomleft") |> 
+    addResetMapButton()
 
 
 ```
@@ -310,7 +313,7 @@ psy_plot <-
     theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
     waterGLKN::theme_WQ() +
     labs(x = NULL) +
-    scale_y_continuous(breaks = c(2006, 2010, 2014, 2020, 2024))
+    scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022))
 
 params_site_year_month <- full_dat |> group_by(Site = site_abbr, param_name, year, month) |> 
   summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(num_samps > 0)
@@ -341,9 +344,41 @@ psy_tab
 
 #### Sampling Heat Maps {.tabset}
 ##### All Params
+Main takeaways from sampling intensity: 
+<ul>
+<li>METC_STCR_23.6 and METC_STCR_0.1 collect the most data, and at a greater frequently within and among years than GLKN sites.</li>
+<li>Parameters in common with the most data and included in later analyses </li>
+  <ul>
+  <li><b>ChlA_ugL</b>: Good overlap among all sites and years. One of the most data rich parameters. </li>
+  <li><b>Cl_mgL</b>: Continuous record in METC 23.6 and 0.1 sites; periodic samples in GLKN sites </li>
+  <li>DO_mgL: Another data rich parameter in METC 23.6 and 0.1 sites; most samples in GLKN sites </li>
+  <li>NO2+NO3_ugL: METC didn't start collecting until 2018, but decent overlap with GLKN during that time.</li>
+  <li>P_ugL: Continuous record in METC 23.6 and 0.1 sites; periodic samples in GLKN sites .</li>
+  <li>pH: Good overlap among METC 23.6 and 0.1 sites and multiple samples within a year for GLKN sites. </li>
+  <li>Secchi_m: Good overlap among all sites and years. One of the most data rich parameters. </li>
+  <li>SO4_mgL: Continuous record in METC 23.6 and 0.1 sites; periodic samples in GLKN sites, though no new records since 2016.</li>
+  <li>SpecCond_uScm: Continuous record in METC 23.6 and 0.1 sites and multiple samples within a year for GLKN sites.</li>
+  <li>TempWater_C: Good overlap among all METC sites. SACN_15.8 is the only GLKN site with data past 2010.</li>
+  <li>TSS_mgL: Continuous record in METC 23.6 and 0.1 sites and periodic samples in GLKN sites.</li>
+  </ul>
+<li>Parameters dropped with notes: </li>
+  <ul>
+  <li>Alkalinity_mgL: Little overlap in years across METC and GLKN </li>
+  <li>Ca_mgL: No new samples since 2020 in either dataset.</li>
+  <li>DOC_mgL: Little overlap in years across METC and GLKN. </li>
+  <li>DOsat_pct: Not included in METC data. Will use DO_mgL. </li>
+  <li>K_mgL: No new samples since 2020 in either dataset.</li>
+  <li>Mg_mgL: No new samples since 2020 in either dataset.</li>
+  <li>Na_mgL: No new samples since 2020 in either dataset.</li>
+  <li>NH4_ugL: No new samples since 2014 in METC.</li>
+  <li>Si_mgL: No new samples since 2021; periodic samples in GLKN sites </li>
+  <li>Transp_cm: No new samples since 2016; periodic samples in GLKN sites </li>
+  </ul>
+</ul>
 ```{r echo = F, out.width = "100%", fig.height = 10}
 psy_plot
 ```
+
 
 ```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F}
 p <- param_heatmap(dat = df, param = prm)
