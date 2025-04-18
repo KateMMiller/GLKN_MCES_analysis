@@ -12,15 +12,139 @@ options(width = 10)
 ```
 
 ## Lake St. Croix Water Quality Redundancy Analysis {.tabset}
-### Background
+### Background {.tabset}
+#### Project Info
 This document compares data collected in Lake St. Croix by the Great Lakes Network (GLKN) as part of their <a href="https://www.nps.gov/im/glkn/water-quality-rivers.htm">Water Quality (Rivers)</a> monitoring protocol with data collected by the <a href="https://metrocouncil.org/About-Us/What-We-Do/Departments/Environmental-Services.aspx">Metropolitan Council's Environmental Services (METC) Department</a>. 
 
 For GLKN, we used the most recently published <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369">2006 -- 2024 Large Rivers Water Quality Monitoring Data</a> Data Package (IRMA record 2309369). For METC, we downloaded all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. 
 
 All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
 
-### Code Prep
-#### Install waterGLKN R package 
+Sites included in this analysis are plotted in the map below.
+
+```{r echo = F, warning = F, message = F, results = 'hide'}
+# Code for leaflet map
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(waterGLKN)
+river_zip = "../data/GLKN_water/records-2309369.zip"
+importData(type = 'zip', filepath = river_zip)
+lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
+sacn_locs <- getLocations(site = lksc) |> select(Location_ID, Org_Code, Latitude, Longitude)
+metc_locs1 <- read.csv("./data/local/2025-03-18_1359_56_MCES_EIMS_data.csv") |> 
+  select(STATION_ID, X = X_COORDINATE_UTM, Y = Y_COORDINATE_UTM) |> unique() |> 
+  mutate(Location_ID = case_when(grepl("SC0003", STATION_ID) ~ as.character("METC_STCR_0.1"),
+                                 grepl("SC0233", STATION_ID) ~ as.character("METC_STCR_23.6"),
+                                 grepl("SC0234", STATION_ID) ~ as.character("METC_STCR_23.4"),
+                                 grepl("82000100-08", STATION_ID) ~ as.character("METC_STCR_22.5"),
+                                 grepl("82000100-06", STATION_ID) ~ as.character("METC_STCR_11.3"),
+                                 grepl("82000100-03", STATION_ID) ~ as.character("METC_STCR_16.6"),
+                                 grepl("82000100-05", STATION_ID) ~ as.character("METC_STCR_12.4"),
+                                 grepl("82000100-04", STATION_ID) ~ as.character("METC_STCR_15.3"),
+                                 grepl("82000100-01", STATION_ID) ~ as.character("METC_STCR_22.3"))) |>
+  filter(!is.na(Location_ID)) 
+
+metc_sf <- st_as_sf(metc_locs1, coords = c("X", "Y"), crs = 32615)
+metc_dd <- st_transform(metc_sf, crs = 4269)
+metc_locs <- data.frame(Location_ID = metc_dd$Location_ID, 
+                        Org_Code = "METC",
+                        Latitude = st_coordinates(metc_dd)[,2], 
+                        Longitude = st_coordinates(metc_dd)[,1])
+
+samp_locs <- rbind(sacn_locs, metc_locs)
+samp_sf <- st_as_sf(samp_locs, coords = c("Longitude", "Latitude"), crs = 4269)
+samp_bb <- st_bbox(samp_sf)
+cent_lat <- mean(samp_locs[,"Latitude"])
+cent_long <- mean(samp_locs[,"Longitude"])
+
+# leaflet basemaps
+NPSbasic <- "https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg"
+
+ESRIimagery <- "http://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+
+ESRItopo <- "http://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+
+ESRINatGeo <- "http://services.arcgisonline.com/arcgis/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}"
+
+# Legend html generator
+# Source: https://stackoverflow.com/questions/47064921/leaflet-legend-for-addawesomemarkers-function-with-icons
+# Icon library changed from font-awesome to ion
+
+markerLegendHTML <- function(IconSet) {
+    # Container div:
+    legendHtml <- "<div style='padding: 10px; padding-bottom: 10px;'>
+    <h4 style='padding-top:0; padding-bottom:10px; margin: 0; color:#555'> Legend </h4>" #legend title
+
+    n <- 1
+    # Add each icon for ion library icons:
+    for (Icon in IconSet) {
+        if (Icon[["library"]] == "ion") {
+        legendHtml<- 
+          paste0(legendHtml,
+          # marker and marker label div
+          "<div style='width: auto; height: 45px; display: flex; align-items: center;'>",
+          # awesome marker div
+          "<div style='position: relative; display: inline-block; width: 35px; height: 45px;' 
+          class='awesome-marker-icon-", Icon[["markerColor"]]," awesome-marker'>",
+          # add icons and set color
+          # class='ion ion-waterdrop icon-white' selects the correct library, icon, and color
+          "<i style='margin-left: 4px; margin-top: 11px' class= 'ion ion-",
+            Icon[["icon"]]," icon-", Icon[["iconColor"]],"'></i>",
+          "</div>", # close awesome marker div
+          # legend label div - use name set in IconSet
+          "<div style='position: relative; display: inline-block; margin-left: 8px;'>", 
+            names(IconSet)[n] ,"</div>",
+          "</div>") # close marker/marker label div    
+        }
+        n <- n + 1
+    } 
+    paste0(legendHtml, "</div>")
+}
+
+# Create list of icons to use in map
+IconSet <- awesomeIconList(
+  "METC" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'blue', iconColor = 'white', library = "ion"),
+  "GLKN" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'cadetblue', iconColor = 'white', library = "ion")
+)
+
+# Create leaflet map
+leaf <- 
+leaflet(height = 650, width = 900) |> 
+    # set default view of park
+    setView(lng = cent_long,
+            lat = cent_lat, 
+            zoom = 12) |> 
+    # add map tiles
+    addTiles(group="Map", urlTemplate = NPSbasic) |> 
+    addTiles(group="Imagery", urlTemplate = ESRIimagery)  |> 
+    addTiles(group="Topo", urlTemplate = ESRItopo)  |> 
+    addTiles(group="NatGeo", urlTemplate = ESRINatGeo)  |> 
+    # add button to control map tiles
+    addLayersControl(baseGroups = c("Map","Imagery","Topo", "NatGeo"),
+                     options = layersControlOptions(collapsed=T)) %>%
+    # add site markers 
+    addAwesomeMarkers(data = samp_locs, ~Longitude, ~Latitude, 
+                      icon = ~IconSet[Org_Code], #style markers based on site type
+                      # label on mouseover
+                      label=as.character(samp_locs$Location_ID),
+                      labelOptions = labelOptions(noHide = T, textsize = "12px", textOnly = T, direction = 'auto',
+                                                  style = list("color" = "navy")),# offset = c(-10,-5)),
+                      # popup on click
+                      popup = paste0("<b>Site: ", samp_locs$Location_ID, "</b><br>",
+                                     "<b>Org_Code: </b>", samp_locs$Org_Code, "<br>")) |> 
+    # add legend
+    addControl(markerLegendHTML(IconSet = IconSet), position = "bottomleft")
+
+
+```
+```{r echo = F, warning = F, message = F}
+leaf
+```
+
+
+#### Code Prep
+<h4> Install waterGLKN R package </h4>
 The waterGLKN package is still a WIP, but at least makes it easier to import and query of GLKN water data using the format of the latest rivers and inland lakes data packages. Must also have RTools44 installed, which can be installed via the Software Center, and the devtools R package. 
 ```{r echo = T, eval = F}
 devtools::install_github("katemmiller/waterGLKN")
@@ -31,12 +155,12 @@ library(waterGLKN)
 library(waterGLKN)
 ```
 
-#### Troubleshooting github-installed packages:
+<h4> Troubleshooting github-installed packages:</h4>
 If you’re unable to install the R package via GitHub (often an error about permission being denied, download the following script and open it in R: <a href="https://doimspp-my.sharepoint.com/:u:/g/personal/kmmiller_nps_gov/ETaknusoEfVOs9tbIbx6QYEBre0WI-_xxi-C0M3JCX_xfw?e=3XAXiC">fix_TLS_inspection.R</a>
 
 Once open in R Studio. Press Control + A to select all of the code. Then Control + Enter to run all of the code. Assuming you don’t return any errors, you should now be able to install from GitHub. Repeat the install_github code above, which hopefully will successful install waterGLKN package.  
 
-#### Load other dependencies and imports
+<h4> Load other dependencies and imports</h4>
 The params csv was developed by GLKN staff manually matching parameter names between GLKN and METC datasets. The csv is posted on the GitHub repo. Note that the waterGLKN package already adds a column of parameter abbreviations following the same naming convention as the params.csv below.
 ```{r results = 'hide', warning = F, message = FALSE}
 library(tidyverse)
@@ -45,8 +169,8 @@ library(kableExtra)
 params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
 ```
 
-### Compile Data
-#### Download Data Package and import into R
+#### Compile Data
+<h4> Download Data Package and import into R</h4>
 Download the latest <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369"> GLKN Rivers Data Package</a>. The easiest way to do it is to download all as a zip. The file path below is where that zip is stored on Kate's machine and the name of the zip file. Then import the data package into R using the waterGLKN function `importData()`.
 ```{r results = 'hide'}
 library(waterGLKN)
@@ -55,7 +179,7 @@ importData(type = 'zip', filepath = river_zip)
 ```
 
 
-#### Filter Results.csv by Lake St. Croix sites and prepare data for binding with METC data. 
+<h4> Filter Results.csv by Lake St. Croix sites and prepare data for binding with METC data. </h4>
 ```{r results = 'hide'}
 # Site list
 lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
@@ -78,7 +202,7 @@ sacn$depth[!is.na(sacn$depth) & sacn$depth_unit == "ft"] <-
 sacn$depth_unit[sacn$depth_unit == "ft"] <- "m"
 ```
 
-#### Prepare METC data for binding with GLKN data
+<h4> Prepare METC data for binding with GLKN data</h4>
 Download all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. The data for this analysis were downloaded on 3/18/2025.
 ```{r results = 'hide'}
 # metc data from webserver
@@ -132,22 +256,27 @@ metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.
 sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
 #table(sacn$param_name, sacn$Location_ID)
 
-full_dat <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2024) # GLKN sites only have data from 2007 - 2023
+full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2024) # GLKN sites only have data from 2007 - 2023
 ```
 
-### Review combined data
+### Sampling Intensity {.tabset}
+#### Code
 ```{r}
+full_dat <- full_dat1 |> filter(!Location_ID %in% "METC_STCR_23.4") # 23.4 has a very narrow period of record. Dropping
+
 full_dat$site_abbr <- factor(gsub("_STCR", "", full_dat$Location_ID),
-                             levels = c("METC_23.6", "METC_23.4", "METC_22.5", "METC_22.3",
-                                         "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
-                                          "METC_12.4",  "METC_11.3", "SACN_2.0", "METC_0.1"))
+                             levels = c("METC_23.6", #"METC_23.4", 
+                                        "METC_22.5", "METC_22.3",
+                                        "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
+                                        "METC_12.4", "METC_11.3", "SACN_2.0", "METC_0.1"))
 
 full_dat$site_order <- factor(full_dat$Location_ID, 
-                              levels = c("METC_STCR_23.6", "METC_STCR_23.4", "METC_STCR_22.5", "METC_STCR_22.3",
+                              levels = c("METC_STCR_23.6", #"METC_STCR_23.4", 
+                                         "METC_STCR_22.5", "METC_STCR_22.3",
                                          "SACN_STCR_20.0", "METC_STCR_16.6", "SACN_STCR_15.8", "METC_STCR_15.3",
                                          "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
 
-params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year) |> 
+params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
   summarize(Num_Samps = sum(!is.na(value)), .groups = 'drop') |> 
   arrange(Site, Parameter, Year)
 
@@ -155,10 +284,10 @@ params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |>
   pivot_wider(names_from = Site, values_from = "Num_Samps") |> 
   arrange(Parameter, Year)
 
-cols <- names(params_site_year_wide[,3:ncol(params_site_year_wide)])
+cols <- names(params_site_year_wide[,4:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
 
-# heat map seems easier, so not printing this to markdown
+# sampling matrix 
 psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c', 
   cap = "Sampling matrix by site for every parameter and year. Values are number of non-QAQC samples within a year. Site codes start with 'METC' for Metropolitan Councial sites, and 'SACN' for GLKN-monitored sites. Numbers indicate the stream miles.") |> 
   kable_styling(fixed_thead = T, bootstrap_options = c("condensed"), full_width = F) |> 
@@ -178,19 +307,62 @@ psy_plot <-
     geom_tile(aes(fill = num_samps_bin), color = 'grey') + facet_wrap(~Parameter, ncol = 3) +
     scale_fill_distiller(palette = "Spectral", guide = "legend", name = "Num. Sample Bins", 
                          labels = c("Bin 1-5", "Bin 6-10", "Bin 11-15", "Bin 16-20", "Bin > 20")) +
-    theme(axis.text.x = element_text(angle = 90)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+    waterGLKN::theme_WQ() +
     labs(x = NULL) +
-    waterGLKN::theme_WQ() 
+    scale_y_continuous(breaks = c(2006, 2010, 2014, 2020, 2024))
 
+params_site_year_month <- full_dat |> group_by(Site = site_abbr, param_name, year, month) |> 
+  summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(num_samps > 0)
+
+# Plotting function to iterate through each parameter
+param_heatmap <- function(dat = param_site_year_month, param = NA){
+  p <-
+    ggplot(dat, aes(x = Site, y = month)) +
+    geom_tile(aes(fill = num_samps), color = 'grey') +
+    facet_grid(rows = vars(year))+
+    scale_fill_distiller(palette = "Spectral", #guide = 'legend', 
+                         name = "# samples") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+    labs(x = NULL, y = NULL) +
+    scale_y_continuous(breaks = seq(1, 12, 2), labels = c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))
+
+    return(p)
+}
+
+param_list <- sort(unique(full_dat$param_name))
 ```
 
-```{r echo = F, eval = F}
+#### Sampling Matrix
+
+```{r echo = F}
 psy_tab
 ```
 
+#### Sampling Heat Maps {.tabset}
+##### All Params
 ```{r echo = F, out.width = "100%", fig.height = 10}
 psy_plot
 ```
+
+```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F}
+p <- param_heatmap(dat = df, param = prm)
+print(p)
+```
+
+```{r results = 'asis', fig.height = 10, echo = F}
+for(i in seq_along(param_list)){
+  prm <- param_list[[i]]
+  df <- params_site_year_month |> filter(param_name %in% prm)
+  cat("##### ", prm, "\n\n")
+  cat(paste0("Heat map of number of samples collected in each year and month by site for <b>", prm, "</b>."))
+  <<sym_heatmap_chunk>>
+  cat("\n\n")
+  cat("\n\n")
+}
+
+```
+
 
 
 ```{r eval = F, echo = F}
