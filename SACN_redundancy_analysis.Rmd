@@ -347,7 +347,7 @@ psy_tab
 Main takeaways from sampling intensity: 
 <ul>
 <li>METC_STCR_23.6 and METC_STCR_0.1 collect the most data, and at a greater frequently within and among years than GLKN sites.</li>
-<li>Parameters in common with the most data and included in later analyses </li>
+<li>Parameters and sites to model for redundancy analyses </li>
   <ul>
   <li><b>ChlA_ugL</b>: Good overlap among all sites and years. Analyze for all sites. </li>
   <li><b>Cl_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites. </li>
@@ -361,7 +361,7 @@ Main takeaways from sampling intensity:
   <li><b>TempWater_C</b>:  Good overlap among all METC sites and years. Analyze for all sites. SACN_15.8 is the only GLKN site with data past 2010.</li>
   <li><b>TSS_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites.</li>
   </ul>
-<li>Parameters dropped with notes: </li>
+<li>Parameters dropped from redundancy analysis with notes: </li>
   <ul>
   <li><b>Alkalinity_mgL</b>: Little overlap in years across METC and GLKN </li>
   <li><b>Ca_mgL</b>: No new samples since 2020 in either dataset.</li>
