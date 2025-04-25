@@ -400,6 +400,27 @@ for(i in seq_along(param_list)){
 ```
 
 
+#### Final Params by Site Matrix
+```{r}
+all_sites <- sort(unique(full_dat$site_order))
+metc2_sacn <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
+
+chla <- data.frame(Location_ID = all_sites, param_name = "ChlA_ugL")
+cl <- data.frame(Location_ID = metc2_sacn, param_name = "Cl_mgL")
+do <- data.frame(Location_ID = metc2_sacn, param_name = "DO_mgL")
+nox <- data.frame(Location_ID = metc2_sacn, param_name = "NO2+NO3_ugL")
+p <- data.frame(Location_ID = metc2_sacn, param_name = "P_ugL")
+ph <- data.frame(Location_ID = metc2_sacn, param_name = "pH")
+sec <- data.frame(Location_ID = all_sites, param_name = "Secchi_m")
+so4 <- data.frame(Location_ID = metc2_sacn, param_name = "SO4_mgL")
+sc <- data.frame(Location_ID = metc2_sacn, param_name = "SpecCond_uScm")
+tmp <- data.frame(Location_ID = all_sites, param_name = "TempWater_C")
+tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
+
+param_site_mat <- rbind(chla, cl, do, nox, p, ph, sec, so4, sc, tmp, tss)
+
+```
+
 
 ```{r eval = F, echo = F}
 write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
