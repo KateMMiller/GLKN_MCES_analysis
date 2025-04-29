@@ -259,7 +259,7 @@ metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.
 sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
 #table(sacn$param_name, sacn$Location_ID)
 
-full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2024) # GLKN sites only have data from 2007 - 2023
+full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2025) # GLKN sites only have data from 2007 - 2023
 ```
 
 ### Sampling Intensity {.tabset}
