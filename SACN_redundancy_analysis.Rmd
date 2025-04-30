@@ -346,7 +346,9 @@ psy_tab
 ##### All Params
 Main takeaways from sampling intensity: 
 <ul>
-<li>METC_STCR_23.6 and METC_STCR_0.1 collect the most data, and at a greater frequently within and among years than GLKN sites.</li>
+<li>METC_STCR_23.6 and METC_STCR_0.1 collect the most data, and at a greater frequency within years than GLKN sites.</li>
+<li>METC_STCR_22.5, METC_STCR_22.3, METC_STCR_16.6, METC_STCR_15.3, METC_STCR_12.4, METC_STCR_11.3 primarily only have water temperature, Secchi depth, and ChlA associated with them.</li>
+
 <li>Parameters and sites to model for redundancy analyses </li>
   <ul>
   <li><b>ChlA_ugL</b>: Good overlap among all sites and years. Analyze for all sites. </li>
@@ -361,18 +363,24 @@ Main takeaways from sampling intensity:
   <li><b>TempWater_C</b>:  Good overlap among all METC sites and years. Analyze for all sites. SACN_15.8 is the only GLKN site with data past 2010.</li>
   <li><b>TSS_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites.</li>
   </ul>
+  
+<li>Parameters that may be included after first cut: </li>
+<ul>
+  <li><b>Alkalinity_mgL</b>: METC started collecting in METC_23.6 and METC_0.1 in 2017, but GLKN has record back to 2007. </li>
+  <li><b>DOC_mgL</b>: METC started collecting in METC_23.6 and METC_0.1 in 2016, but GLKN has record back to 2007.  </li>
+
+</ul>
+  
 <li>Parameters dropped from redundancy analysis with notes: </li>
   <ul>
-  <li><b>Alkalinity_mgL</b>: Little overlap in years across METC and GLKN </li>
-  <li><b>Ca_mgL</b>: No new samples since 2020 in either dataset.</li>
-  <li><b>DOC_mgL</b>: Little overlap in years across METC and GLKN. </li>
-  <li><b>DOsat_pct</b>: Not included in METC data. Will use DO_mgL. </li>
-  <li><b>K_mgL</b>: No new samples since 2020 in either dataset.</li>
-  <li><b>Mg_mgL</b>: No new samples since 2020 in either dataset.</li>
-  <li><b>Na_mgL</b>: No new samples since 2020 in either dataset.</li>
+  <li><b>Ca_mgL</b>: No new samples since 2020 in METC.</li>
+  <li><b>DOsat_pct</b>: Not sampled by METC. Will use DO_mgL. </li>
+  <li><b>K_mgL</b>: No new samples since 2020 in METC.</li>
+  <li><b>Mg_mgL</b>: No new samples since 2020 in METC.</li>
+  <li><b>Na_mgL</b>: No new samples since 2020 in METC.</li>
   <li><b>NH4_ugL</b>: No new samples since 2014 in METC.</li>
-  <li><b>Si_mgL</b>: No new samples since 2021; periodic samples in GLKN sites </li>
-  <li><b>Transp_cm</b>: No new samples since 2016; periodic samples in GLKN sites </li>
+  <li><b>Si_mgL</b>: No new samples since 2021 in METC. </li>
+  <li><b>Transp_cm</b>: No new samples since 2016in METC. </li>
   </ul>
 </ul>
 
@@ -405,6 +413,7 @@ for(i in seq_along(param_list)){
 all_sites <- sort(unique(full_dat$site_order))
 metc2_sacn <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
 
+alk <- data.frame(Location_ID = metc2_sacn, param_name = "Alkalinity_mgL")
 chla <- data.frame(Location_ID = all_sites, param_name = "ChlA_ugL")
 cl <- data.frame(Location_ID = metc2_sacn, param_name = "Cl_mgL")
 do <- data.frame(Location_ID = metc2_sacn, param_name = "DO_mgL")
