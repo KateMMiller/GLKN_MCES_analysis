@@ -512,7 +512,7 @@ for(i in seq_along(param_list)){
 ```
 
 ##### Discharge
-```{r echo = F}
+```{r echo = F, fig.height = 10}
 dis_ym_plot
 ```
 
