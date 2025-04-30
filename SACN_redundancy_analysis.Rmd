@@ -18,9 +18,27 @@ This document compares data collected in Lake St. Croix by the Great Lakes Netwo
 
 For GLKN, we used the most recently published <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369">2006 -- 2024 Large Rivers Water Quality Monitoring Data</a> Data Package (IRMA record 2309369). For METC, we downloaded all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. 
 
+Based on the <a href="https://dashboard.waterdata.usgs.gov/app/nwd/en/">USGS National Water Dashboard</a>, Lake St. Croix is bounded by two USGS stream gages, which can be used to model discharge. USGS 05341550 is at the start of Lake St. Croix, very close to METC_STCR_23.6; USGS 05344490 is at the confluence near METC_STCR_0.1 and SACN_STCR_2.0.   
+
 All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
 
+
 Sites included in this analysis are plotted in the map below.
+```{r echo = F, warning = F, message = F, results = 'hide'}
+library(dataRetrieval)
+gages <- c("05341550", "05344490")
+gage_params <- c("00060", "00010", "00400") # Discharge, Temp, pH
+gagedat <- whatNWISdata(siteNumber = gages, parameterCd = gage_params, service = 'dv')[,c("site_no", "parm_cd", "dec_lat_va", "dec_long_va", "begin_date", "end_date")]
+gagedat$param[gagedat$parm_cd == "00060"] <- "Discharge"
+gagedat$param[gagedat$parm_cd == "00010"] <- "Temp"
+gagedat$param[gagedat$parm_cd == "00040"] <- "pH"
+gagedat$Location_ID[gagedat$site_no == gages[1]] <- "USGS_STCR_23.5"
+gagedat$Location_ID[gagedat$site_no == gages[2]] <- "USGS_STCR_0.2"
+gagedat$Org_Code <- "USGS"
+names(gagedat)[names(gagedat) == "dec_lat_va"] <- "Latitude"
+names(gagedat)[names(gagedat) == "dec_long_va"] <- "Longitude"
+# dv = daily values; uv = instantaeous value; qw = water quality
+```
 
 ```{r echo = F, warning = F, message = F, results = 'hide'}
 # Code for leaflet map
@@ -53,7 +71,7 @@ metc_locs <- data.frame(Location_ID = metc_dd$Location_ID,
                         Latitude = st_coordinates(metc_dd)[,2], 
                         Longitude = st_coordinates(metc_dd)[,1])
 
-samp_locs <- rbind(sacn_locs, metc_locs)
+samp_locs <- rbind(sacn_locs, metc_locs, gagedat[,c("Location_ID", "Org_Code", "Latitude", "Longitude")])
 samp_sf <- st_as_sf(samp_locs, coords = c("Longitude", "Latitude"), crs = 4269)
 samp_bb <- st_bbox(samp_sf)
 cent_lat <- mean(samp_locs[,"Latitude"])
@@ -105,8 +123,9 @@ markerLegendHTML <- function(IconSet) {
 
 # Create list of icons to use in map
 IconSet <- awesomeIconList(
-  "METC" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'blue', iconColor = 'white', library = "ion"),
-  "GLKN" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'cadetblue', iconColor = 'white', library = "ion")
+  "METC" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'lightblue', iconColor = 'white', library = "ion"),
+  "GLKN" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'cadetblue', iconColor = 'white', library = "ion"),
+  "USGS" = makeAwesomeIcon(icon= 'waterdrop', markerColor = 'green', iconColor = 'white', library = "ion")
 )
 
 # Create leaflet map
@@ -262,6 +281,50 @@ sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
 full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2025) # GLKN sites only have data from 2007 - 2024
 ```
 
+Compile USGS discharge data
+```{r cache = T}
+dischg <- renameNWISColumns(readNWISdv(siteNumbers = gages, parameterCd = "00060"))
+gages <- c("05341550", "05344490")
+dischg$Location_ID[dischg$site_no == gages[1]] <- "USGS_STCR_23.5"
+dischg$Location_ID[dischg$site_no == gages[2]] <- "USGS_STCR_0.2"
+dischg$month <- as.numeric(format(dischg$Date, "%m"))
+
+dis_wide <- dischg |> select(-site_no) |>
+  filter(month %in% 4:11) |> # filter only GLKN-sampled months
+  pivot_wider(names_from = Location_ID, values_from = c(Flow, Flow_cd)) 
+
+dis_wide_overlap <- dis_wide |> filter(!is.na(Flow_USGS_STCR_0.2) & !is.na(Flow_USGS_STCR_23.5))
+
+dischg2 <- dischg |> filter(Date > as.Date("2011-09-09", format = "%Y-%m-%d"))
+
+dp <- 
+ggplot(dischg2, aes(x = Date, y = Flow, group = Location_ID, color = Location_ID)) + 
+  geom_line() + theme_WQ() + labs(color = NULL) +
+  scale_color_brewer(palette = "Set1")
+```
+
+Plot of discharge for overlapping sample periods of the stream gages.
+```{r echo = F}
+dp
+```
+
+
+Check on flow rating. Most are A, a few P (provisional). The 'e' refers to estimated. 
+```{r}
+table(dischg$Location_ID, dischg$Flow_cd)
+```
+
+Correlation in discharge between the two sites
+```{r}
+round(cor(dis_wide_overlap[,c("Flow_USGS_STCR_23.5", "Flow_USGS_STCR_0.2")]), 2)[1,2] # 0.96
+```
+
+```{r}
+mod <- lm(Flow_USGS_STCR_0.2 ~ Flow_USGS_STCR_23.5, data = dis_wide_overlap)
+summary(mod) # Slope is 0.96 Rsq 0.92. They're quite close. 
+```
+
+
 ### Sampling Intensity {.tabset}
 #### Code
 ```{r}
@@ -409,6 +472,7 @@ for(i in seq_along(param_list)){
 
 
 #### Final Params by Site Matrix
+Creating data frame of site and parameter matrix for easier iteration later
 ```{r}
 all_sites <- sort(unique(full_dat$site_order))
 metc2_sacn <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
@@ -416,6 +480,7 @@ metc2_sacn <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR
 alk <- data.frame(Location_ID = metc2_sacn, param_name = "Alkalinity_mgL")
 chla <- data.frame(Location_ID = all_sites, param_name = "ChlA_ugL")
 cl <- data.frame(Location_ID = metc2_sacn, param_name = "Cl_mgL")
+doc <- data.frame(Location_ID = metc2_sacn, param_name = "DOC_mgL")
 do <- data.frame(Location_ID = metc2_sacn, param_name = "DO_mgL")
 nox <- data.frame(Location_ID = metc2_sacn, param_name = "NO2+NO3_ugL")
 p <- data.frame(Location_ID = metc2_sacn, param_name = "P_ugL")
@@ -426,14 +491,14 @@ sc <- data.frame(Location_ID = metc2_sacn, param_name = "SpecCond_uScm")
 tmp <- data.frame(Location_ID = all_sites, param_name = "TempWater_C")
 tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
 
-param_site_mat <- rbind(chla, cl, do, nox, p, ph, sec, so4, sc, tmp, tss)
+param_site_mat <- rbind(alk, chla, cl, doc, do, nox, p, ph, sec, so4, sc, tmp, tss)
+head(param_site_mat)
 
 ```
 
 
-```{r eval = F, echo = F}
+```{r eval = F, echo = F, include = F}
 write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
-
-
 ```
 
+### Analysis
