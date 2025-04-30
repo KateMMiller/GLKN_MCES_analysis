@@ -360,7 +360,6 @@ params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |>
 cols <- names(params_site_year_wide[,4:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
 
-head(dischg)
 dischg$month <- as.numeric(format(dischg$Date, "%m"))
 dischg$year <- as.numeric(format(dischg$Date, "%Y"))
 
@@ -539,7 +538,6 @@ tmp <- data.frame(Location_ID = all_sites, param_name = "TempWater_C")
 tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
 
 param_site_mat <- rbind(alk, chla, cl, doc, do, nox, p, ph, sec, so4, sc, tmp, tss)
-head(param_site_mat)
 
 ```
 
