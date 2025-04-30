@@ -281,7 +281,7 @@ sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
 full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2025) # GLKN sites only have data from 2007 - 2024
 ```
 
-Compile USGS discharge data
+<h4>Compile USGS discharge data</h4>
 ```{r cache = T}
 dischg <- renameNWISColumns(readNWISdv(siteNumbers = gages, parameterCd = "00060"))
 gages <- c("05341550", "05344490")
@@ -328,30 +328,53 @@ summary(mod) # Slope is 0.96 Rsq 0.92. They're quite close.
 ### Sampling Intensity {.tabset}
 #### Code
 ```{r}
-full_dat <- full_dat1 |> filter(!Location_ID %in% "METC_STCR_23.4") # 23.4 has a very narrow period of record. Dropping
+full_dat2 <- full_dat1 |> filter(!Location_ID %in% "METC_STCR_23.4") # 23.4 has a very narrow period of record. Dropping
 
-full_dat$site_abbr <- factor(gsub("_STCR", "", full_dat$Location_ID),
-                             levels = c("METC_23.6", #"METC_23.4", 
-                                        "METC_22.5", "METC_22.3",
-                                        "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
-                                        "METC_12.4", "METC_11.3", "SACN_2.0", "METC_0.1"))
+full_dat2$site_abbr <- factor(gsub("_STCR", "", full_dat2$Location_ID),
+                              levels = c("METC_23.6", #"METC_23.4", 
+                                         "METC_22.5", "METC_22.3",
+                                         "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
+                                         "METC_12.4", "METC_11.3", "SACN_2.0", "METC_0.1"))
 
-full_dat$site_order <- factor(full_dat$Location_ID, 
-                              levels = c("METC_STCR_23.6", #"METC_STCR_23.4", 
-                                         "METC_STCR_22.5", "METC_STCR_22.3",
-                                         "SACN_STCR_20.0", "METC_STCR_16.6", "SACN_STCR_15.8", "METC_STCR_15.3",
-                                         "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
+full_dat2$site_order <- factor(full_dat2$Location_ID, 
+                               levels = c("METC_STCR_23.6", #"METC_STCR_23.4", 
+                                          "METC_STCR_22.5", "METC_STCR_22.3",
+                                          "SACN_STCR_20.0", "METC_STCR_16.6", "SACN_STCR_15.8", "METC_STCR_15.3",
+                                          "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
+full_dat2$sample_date <- as.Date(full_dat2$sample_date, format = "%Y-%m-%d")
+
+full_dat <- left_join(full_dat2, 
+                      dis_wide |> select(Date, Flow_USGS_STCR_0.2, Flow_USGS_STCR_23.5, 
+                                         Flow_cd_USGS_STCR_0.2, Flow_cd_USGS_STCR_23.5), 
+                      by = c("sample_date" = "Date"))
 
 params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
-  summarize(Num_Samps = sum(!is.na(value)), .groups = 'drop') |> 
+  summarize(Num_Samps = sum(!is.na(value)),
+            .groups = 'drop') |> 
   arrange(Site, Parameter, Year)
 
 params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |> 
-  pivot_wider(names_from = Site, values_from = "Num_Samps") |> 
+  pivot_wider(names_from = Site, values_from = Num_Samps) |> 
   arrange(Parameter, Year)
 
 cols <- names(params_site_year_wide[,4:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
+
+head(dischg)
+dischg$month <- as.numeric(format(dischg$Date, "%m"))
+dischg$year <- as.numeric(format(dischg$Date, "%Y"))
+
+dis_yrm <- dischg |> 
+  #filter(month %in% 4:11) |> 
+  group_by(Location_ID, month, year) |> 
+  summarize(Num_Dis = sum(!is.na(Flow)),
+            .groups = 'drop') 
+
+dis_yr <- dischg |> 
+  #filter(month %in% 4:11) |> 
+  group_by(Location_ID, year) |> 
+  summarize(Num_Dis = sum(!is.na(Flow)),
+            .groups = 'drop') 
 
 # sampling matrix 
 psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c', 
@@ -377,6 +400,25 @@ psy_plot <-
     waterGLKN::theme_WQ() +
     labs(x = NULL) +
     scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022))
+# 
+# dis_y_plot <- 
+#   ggplot(dis_yr, aes(x = Location_ID, y = year)) +
+#     geom_tile(aes(fill = Num_Dis), color = 'grey') + 
+#     scale_fill_distiller(palette = "Spectral", guide = "legend", name = "Num. Samples") +
+#     theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+#     waterGLKN::theme_WQ() +
+#     labs(x = NULL) +
+#     scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022))
+
+dis_ym_plot <- 
+  ggplot(dis_yrm, aes(x = Location_ID, y = month)) +
+  geom_tile(aes(fill = Num_Dis), color = 'grey') + 
+  facet_grid(rows = vars(year)) +
+  scale_fill_distiller(palette = "Spectral", guide = 'legend', 
+                       name = "# samples") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+  labs(x = NULL, y = NULL) +
+  scale_y_continuous(breaks = seq(1, 12, 2), labels = c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))
 
 params_site_year_month <- full_dat |> group_by(Site = site_abbr, param_name, year, month) |> 
   summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(num_samps > 0)
@@ -468,6 +510,11 @@ for(i in seq_along(param_list)){
   cat("\n\n")
 }
 
+```
+
+##### Discharge
+```{r echo = F}
+dis_ym_plot
 ```
 
 
