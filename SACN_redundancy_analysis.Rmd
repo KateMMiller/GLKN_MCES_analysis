@@ -517,6 +517,11 @@ dis_ym_plot
 ```
 
 
+```{r eval = F, echo = F, include = F}
+write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
+```
+
+### Analysis
 #### Final Params by Site Matrix
 Creating data frame of site and parameter matrix for easier iteration later
 ```{r}
@@ -540,10 +545,3 @@ tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
 param_site_mat <- rbind(alk, chla, cl, doc, do, nox, p, ph, sec, so4, sc, tmp, tss)
 
 ```
-
-
-```{r eval = F, echo = F, include = F}
-write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
-```
-
-### Analysis
