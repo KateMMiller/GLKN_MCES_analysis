@@ -188,7 +188,7 @@ The params csv was developed by GLKN staff manually matching parameter names bet
 library(tidyverse)
 library(knitr)
 library(kableExtra)
-library(broom) # tidy model output
+library(DT)
 params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
 ```
 
@@ -399,8 +399,7 @@ round(cor(dis_wide_overlap[,c("Flow_USGS_STCR_23.5", "Flow_USGS_STCR_0.2")]), 2)
 
 ```{r}
 mod <- lm(Flow_USGS_STCR_0.2 ~ Flow_USGS_STCR_23.5, data = dis_wide_overlap)
-tidy(mod)
-glance(mod) # Slope is 0.96 Rsq 0.92. They're quite close. 
+summary(mod)
 ```
 
 
@@ -432,16 +431,15 @@ full_dat3 <- left_join(full_dat2,
 # duplicate water temps in the METC data, but they're always within a few tenths of a degree, taking 
 # the average of the two measurements. 
 wtemp <- full_dat3 |> filter(param_name == "TempWater_C") |> 
-  select(Location_ID, sample_date, Activity_Type, depth_cat, depth, WaterTemp_C = value) |> 
+  select(Location_ID, sample_date, depth_cat, depth, WaterTemp_C = value) |> 
   filter(!is.na(WaterTemp_C)) |> 
-  group_by(Location_ID, sample_date, Activity_Type, depth_cat, depth) |> 
+  group_by(Location_ID, sample_date, depth_cat, depth) |> 
   summarize(WaterTemp_C = mean(WaterTemp_C), .groups = 'drop')
 
 ```
 
 ```{r}
-full_dat <- left_join(full_dat3, wtemp, by = c("Location_ID", "sample_date", "depth"))
-head(full_dat)
+full_dat <- left_join(full_dat3, wtemp, by = c("Location_ID", "sample_date", "depth", "depth_cat")) 
 
 params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
   summarize(Num_Samps = sum(!is.na(value)),
@@ -609,6 +607,31 @@ for(i in seq_along(param_list)){
 ##### Discharge
 ```{r echo = F, fig.height = 10}
 dis_ym_plot
+```
+
+#### Final Dataset
+```{r}
+final_dat <- full_dat |> filter(month %in% 4:11)
+
+dt <- datatable(final_dat, 
+                class = 'cell-border stripe', rownames = F, width = '1200px',
+                extensions = c("Buttons"),
+                options = list(       
+                            initComplete = htmlwidgets::JS(
+                            "function(settings, json) {",
+                              "$('body').css({'font-size': '11px'});",
+                              "$('body').css({'font-family': 'Arial'});",
+                              "$(this.api().table().header()).css({'font-size': '11px'});",
+                              "$(this.api().table().header()).css({'font-family': 'Arial'});",
+                            "}"),
+                pageLength = 50, autoWidth = TRUE, scrollX = TRUE, scrollY = '600px',
+                scrollCollapse = TRUE, lengthMenu = c(5, 10, 50, nrow(full_dat)),
+                fixedColumns = list(leftColumns = 1),
+                dom = "Blfrtip", buttons = c('copy', 'csv', 'print')),
+                filter = list(position = 'top', clear = FALSE)#,
+                )
+
+dt
 ```
 
 
