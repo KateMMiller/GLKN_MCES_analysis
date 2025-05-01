@@ -215,7 +215,13 @@ sacn <- getResults(park = "SACN", site = lksc, sample_type = "VS",
                    output = 'verbose') |>
   select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, Activity_Comment, sample_date, doy, year, month,
          depth_cat = Activity_Relative_Depth, depth = Activity_Depth, depth_unit = Activity_Depth_Unit,
-         PARAMETER = Characteristic_Name, param_name, value, unit = Result_Unit, Filtered_Fraction, Result_Comment)
+         PARAMETER = Characteristic_Name, param_name, value, unit = Result_Unit, Filtered_Fraction, Result_Comment, 
+         censored, Result_Detection_Condition, Method_Detection_Limit, Lower_Quantification_Limit, Upper_Quantification_Limit)
+
+# Use Result_Comment to extract censored value
+sacn$value_cen <- suppressWarnings(
+  ifelse(sacn$Result_Detection_Condition %in% c("Present Above Quantification Limit", "Present Below Quantification Limit"),
+           as.numeric(str_extract(sacn$Result_Comment, "\\d*\\.*\\d+")), sacn$value))
 
 sacn$param_name[sacn$param_name == "ChlA_ppb"] <- "ChlA_ugL"
 sacn$unit[sacn$param_name == "ChlA_ppb"] <- "ug/l"
@@ -230,7 +236,7 @@ sacn_dups <- sacn |> group_by(Location_ID, sample_date, depth, Activity_Type, pa
   mutate(num_samps = sum(!is.na(value))) |> filter(num_samps > 1) |> 
   arrange(Location_ID, sample_date, depth, param_name) |> 
     select(Location_ID, sample_date, depth_cat, depth, Activity_Type, PARAMETER, param_name, value, 
-           unit, num_samps, Filtered_Fraction, Activity_Comment, Result_Comment)
+           unit, num_samps, Filtered_Fraction, Activity_Comment, Result_Comment, Result_Detection_Condition)
 
 ```
 
@@ -254,9 +260,36 @@ sacn_final <- sacn |>
   arrange(Activity_Comment) |>
   group_by(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type,
            sample_date, doy, year, month, depth_cat, depth, depth_unit,
-           PARAMETER, param_name, unit) |> 
+           PARAMETER, param_name, unit, qualifier = Result_Detection_Condition, 
+           censored, value_cen) |> 
   summarize(value = first(value), .groups = 'drop')
 
+```
+
+<h4>SACN Non-detect Conditions</h4>
+```{r}
+sacn_qual <- sacn_final |> group_by(Location_ID, year, month, param_name, qualifier) |> 
+  summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> 
+  filter(qualifier != "Detected and Quantified")
+
+sacn_dt <- datatable(
+                sacn_qual, 
+                class = 'cell-border stripe', rownames = F, width = '1200px',
+                extensions = c("Buttons"),
+                options = list(       
+                            initComplete = htmlwidgets::JS(
+                            "function(settings, json) {",
+                              "$('body').css({'font-size': '11px'});",
+                              "$('body').css({'font-family': 'Arial'});",
+                              "$(this.api().table().header()).css({'font-size': '11px'});",
+                              "$(this.api().table().header()).css({'font-family': 'Arial'});",
+                            "}"),
+                pageLength = 50, autoWidth = TRUE, scrollX = TRUE, scrollY = '600px',
+                scrollCollapse = TRUE, lengthMenu = c(5, 10, 50, nrow(sacn_qual)),
+                fixedColumns = list(leftColumns = 1),
+                dom = "Blfrtip", buttons = c('copy', 'csv', 'print')),
+                filter = list(position = 'top', clear = FALSE)#,
+                )
 ```
 
 
@@ -287,6 +320,8 @@ metc1$month <- as.numeric(substr(metc1$sample_date, 6, 7))
 metc1$doy <- as.numeric(format(as.Date(metc1$sample_date, format = "%Y-%m-%d"), "%j"))
 metc1$depth_unit = "m"
 metc1$depth_cat <- ifelse(metc1$SAMPLE_DEPTH_m <= 1, "surface", NA_character_)
+metc1$censored <- FALSE
+metc1$value_cen <- metc1$RESULT
 
 metc2 <- metc1 |>
   mutate(value = ifelse(PARAMETER %in% c( "Chlorophyll-a, Pheo-Corrected",
@@ -295,26 +330,59 @@ metc2 <- metc1 |>
                                            RESULT/1000,
                                            RESULT)) |>
   select(Org_Code, Park_Code, Location_ID, Location_Name = NAME, sample_date, doy, year, month,
-         depth_cat, depth = SAMPLE_DEPTH_m, depth_unit, PARAMETER, value, units = UNITS)
+         depth_cat, depth = SAMPLE_DEPTH_m, depth_unit, PARAMETER, value, units = UNITS, 
+         qualifier = QUALIFIER, censored, value_cen)
 
 # Join METC data with param.csv for parameter abbreviations (param_name)
 metc_join <- left_join(metc2, params, by = c("PARAMETER" = "Parameter", "units" = "Units")) |>
   filter(!is.na(New_Name)) |>
   mutate(Activity_Type = "Sample") |> 
-  select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, sample_date, doy, year, month, depth_cat, depth,
-         depth_unit, PARAMETER, param_name = New_Name, value, unit= units)
+  select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, sample_date,
+         doy, year, month, depth_cat, depth,
+         depth_unit, PARAMETER, param_name = New_Name, value, unit = units, qualifier, censored, value_cen)
 
 # Check for duplicate samples in the same site, date, depth, parameter
-metc_dup <- metc_join |> group_by(Location_ID, sample_date, depth_cat, depth, param_name) |> 
+metc_dup <- metc_join |> group_by(Location_ID, sample_date, depth_cat, depth, param_name, qualifier) |> 
   mutate(num_samps = sum(!is.na(value))) |> filter(num_samps > 1) |> 
   arrange(Location_ID, sample_date, depth, param_name)
 
 ```
 
+<h4>METC Data Qualifiers</h4>
+```{r}
+metc_qual <- metc_join |> group_by(Location_ID, year, month, param_name, qualifier) |> 
+  summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(qualifier != "Valid")
+
+qual_dt <- datatable(
+                metc_qual, 
+                class = 'cell-border stripe', rownames = F, width = '1200px',
+                extensions = c("Buttons"),
+                options = list(       
+                            initComplete = htmlwidgets::JS(
+                            "function(settings, json) {",
+                              "$('body').css({'font-size': '11px'});",
+                              "$('body').css({'font-family': 'Arial'});",
+                              "$(this.api().table().header()).css({'font-size': '11px'});",
+                              "$(this.api().table().header()).css({'font-family': 'Arial'});",
+                            "}"),
+                pageLength = 50, autoWidth = TRUE, scrollX = TRUE, scrollY = '600px',
+                scrollCollapse = TRUE, lengthMenu = c(5, 10, 50, nrow(metc_qual)),
+                fixedColumns = list(leftColumns = 1),
+                dom = "Blfrtip", buttons = c('copy', 'csv', 'print')),
+                filter = list(position = 'top', clear = FALSE)#,
+                )
+```
+
+<h4>METC data qualifiers that are not "Valid" by site, parameter, and year </h4>
+Seems there are a bunch of preliminary records in early years, kind of like how we treat accepted versus certified in our data. But seems like we should drop suspect. 
+```{r}
+qual_dt
+```
+
 <h4>Duplicates in the METC data </h4>
 In general values are very close. Sometimes one is total and the other dissolved. Other times the dups are the same category. Going to take only the first per group, after sorting by Activity_Comment. 
 ```{r}
-mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l'), 
+mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l', rep('c', 6)), 
              caption = "Duplicate measurements within the same site, date, depth, and parameter. ") |> 
        kable_styling(fixed_thead = TRUE, bootstrap_options = c('condensed'), 
                      full_width = TRUE, position = 'left', font_size = 12) |> 
@@ -325,13 +393,13 @@ mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c
 mdk
 ```
 
-
 ```{r}
 metc_final <- metc_join |> 
+  filter(qualifier != "Suspect") |> 
   group_by(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type,
            sample_date, doy, year, month, depth_cat, depth, depth_unit,
-           PARAMETER, param_name, unit) |> 
-  summarize(value = first(value), .groups = 'drop')
+           PARAMETER, param_name, unit, qualifier, censored, value_cen) |> 
+  summarize(value = first(value), .groups = 'drop') 
 
 ```
 
@@ -441,16 +509,21 @@ wtemp <- full_dat3 |> filter(param_name == "TempWater_C") |>
 ```{r}
 full_dat <- left_join(full_dat3, wtemp, by = c("Location_ID", "sample_date", "depth", "depth_cat")) 
 
-params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
-  summarize(Num_Samps = sum(!is.na(value)),
-            .groups = 'drop') |> 
-  arrange(Site, Parameter, Year)
+param_site_year_qual <- full_dat |> 
+  group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code, qualifier) |> 
+  summarize(Num_Samps = sum(!is.na(param_name)), .groups = 'drop') |> 
+  arrange(Site, Parameter, Year, qualifier)
 
-params_site_year_wide <- params_site_year |> #filter(Num_Samps > 0) |> 
+# params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
+#   summarize(Num_Samps = sum(!is.na(value)),
+#             .groups = 'drop') |> 
+#   arrange(Site, Parameter, Year)
+
+params_site_year_wide <- param_site_year_qual |> #filter(Num_Samps > 0) |> 
   pivot_wider(names_from = Site, values_from = Num_Samps) |> 
   arrange(Parameter, Year)
 
-cols <- names(params_site_year_wide[,4:ncol(params_site_year_wide)])
+cols <- names(params_site_year_wide[,6:ncol(params_site_year_wide)])
 params_site_year_wide[,cols][params_site_year_wide[,cols] == 0] <- NA_real_
 
 dischg$month <- as.numeric(format(dischg$Date, "%m"))
@@ -475,14 +548,18 @@ psy_tab <- kable(params_site_year_wide, format = 'html', align = 'c',
   column_spec(1:ncol(params_site_year_wide), border_left = T, border_right = T) |> 
   collapse_rows(1, valign = 'top') 
 
-params_site_year1 <- params_site_year |> mutate(num_samps_bin = case_when(between(Num_Samps, 1, 5) ~ 1,
-                                                                          between(Num_Samps, 6, 10) ~ 2,
-                                                                          between(Num_Samps, 11, 15) ~ 3,
-                                                                          between(Num_Samps, 16, 20) ~ 4,
-                                                                          Num_Samps > 20 ~ 5)) |> 
-  filter(Num_Samps > 0)
+params_site_year1 <- param_site_year_qual |> 
+  mutate(num_samps_bin = case_when(between(Num_Samps, 1, 5) ~ 1,
+                                   between(Num_Samps, 6, 10) ~ 2,
+                                   between(Num_Samps, 11, 15) ~ 3,
+                                   between(Num_Samps, 16, 20) ~ 4,
+                                   Num_Samps > 20 ~ 5),
+         qual_simp = case_when(qualifier %in% c("Valid", "Preliminary") ~ "Detected and Quantified",
+                               qualifier == "Suspect" ~ "Not Reported",
+                               TRUE ~ qualifier)) |> 
+ filter(Num_Samps > 0)
 
-# Create heat map of sampling intensity
+# Create heat map of overall sampling intensity
 psy_plot <- 
   ggplot(params_site_year1, aes(x = Site, y = Year)) +
     geom_tile(aes(fill = num_samps_bin), color = 'grey') + facet_wrap(~Parameter, ncol = 3) +
@@ -493,14 +570,20 @@ psy_plot <-
     labs(x = NULL) +
     scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022))
 # 
-# dis_y_plot <- 
-#   ggplot(dis_yr, aes(x = Location_ID, y = year)) +
-#     geom_tile(aes(fill = Num_Dis), color = 'grey') + 
-#     scale_fill_distiller(palette = "Spectral", guide = "legend", name = "Num. Samples") +
-#     theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
-#     waterGLKN::theme_WQ() +
-#     labs(x = NULL) +
-#     scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022))
+# Plotting function to iterate through each parameter detects
+param_detect_heatmap <- function(dat = params_site_year1, param = NA){
+  p <-
+    ggplot(dat, aes(x = Site, y = Year)) +
+    geom_tile(aes(fill = Num_Samps), color = 'grey') +
+    facet_wrap(~qual_simp)+
+    scale_fill_distiller(palette = "Spectral", guide = 'legend', 
+                         name = "# samples") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+    labs(x = NULL, y = NULL) +
+    theme_bw()
+
+    return(p)
+}
 
 dis_ym_plot <- 
   ggplot(dis_yrm, aes(x = Location_ID, y = month)) +
@@ -516,21 +599,40 @@ params_site_year_month <- full_dat |> group_by(Site = site_abbr, param_name, yea
   summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(num_samps > 0)
 
 # Plotting function to iterate through each parameter
-param_heatmap <- function(dat = param_site_year_month, param = NA){
+# param_heatmap <- function(dat = param_site_year_month, param = NA){
+#   p <-
+#     ggplot(dat, aes(x = Site, y = month)) +
+#     geom_tile(aes(fill = num_samps), color = 'grey') +
+#     facet_grid(rows = vars(year), cols = vars(qual_simp))+
+#     scale_fill_distiller(palette = "Spectral", guide = 'legend', 
+#                          name = "# samples") +
+#     theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+#     labs(x = NULL, y = NULL) +
+#     scale_y_reverse(breaks = seq(1, 12, 2), labels = c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))
+# 
+#     return(p)
+# }
+
+param_detect_heatmap <- function(dat = params_site_year1, param = NA){
   p <-
-    ggplot(dat, aes(x = Site, y = month)) +
-    geom_tile(aes(fill = num_samps), color = 'grey') +
-    facet_grid(rows = vars(year))+
+    ggplot(dat, aes(x = Site, y = Year)) +
+    geom_tile(aes(fill = Num_Samps), color = 'grey') +
+    facet_wrap(~factor(qual_simp)) +
     scale_fill_distiller(palette = "Spectral", guide = 'legend', 
                          name = "# samples") +
     theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
     labs(x = NULL, y = NULL) +
-    scale_y_continuous(breaks = seq(1, 12, 2), labels = c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))
+    scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022)) +
+    theme_bw()
 
     return(p)
 }
-
 param_list <- sort(unique(full_dat$param_name))
+```
+
+```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F, fig.height=10}
+p <- param_detect_heatmap(dat = df, param = prm)
+print(p)
 ```
 
 #### Sampling Matrix
@@ -586,17 +688,12 @@ psy_plot
 ```
 
 
-```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F}
-p <- param_heatmap(dat = df, param = prm)
-print(p)
-```
-
 ```{r results = 'asis', fig.height = 10, echo = F}
 for(i in seq_along(param_list)){
   prm <- param_list[[i]]
-  df <- params_site_year_month |> filter(param_name %in% prm)
+  df <- params_site_year1 |> filter(Parameter %in% prm)
   cat("##### ", prm, "\n\n")
-  cat(paste0("Heat map of number of samples collected in each year and month by site for <b>", prm, "</b>."))
+  cat(paste0("Heat map of number of samples collected in each year by site for <b>", prm, " and detection status</b>."))
   <<sym_heatmap_chunk>>
   cat("\n\n")
   cat("\n\n")
