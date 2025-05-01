@@ -620,10 +620,10 @@ param_detect_heatmap <- function(dat = params_site_year1, param = NA){
     facet_wrap(~factor(qual_simp)) +
     scale_fill_distiller(palette = "Spectral", guide = 'legend', 
                          name = "# samples") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) +
+    theme_bw() +
     labs(x = NULL, y = NULL) +
     scale_y_continuous(breaks = c(2006, 2010, 2014, 2018, 2022)) +
-    theme_bw()
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)) 
 
     return(p)
 }
