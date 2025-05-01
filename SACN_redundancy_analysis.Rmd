@@ -188,6 +188,7 @@ The params csv was developed by GLKN staff manually matching parameter names bet
 library(tidyverse)
 library(knitr)
 library(kableExtra)
+library(broom) # tidy model output
 params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
 ```
 
@@ -210,10 +211,11 @@ sacn <- getResults(park = "SACN", site = lksc, sample_type = "VS",
                    parameter = 'all',
                    months = 1:12,
                    sample_depth = 'all',
-                   include_censored = T) |>
-  select(Org_Code, Park_Code, Location_ID, Location_Name, sample_date, doy, year, month,
+                   include_censored = T,
+                   output = 'verbose') |>
+  select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, Activity_Comment, sample_date, doy, year, month,
          depth_cat = Activity_Relative_Depth, depth = Activity_Depth, depth_unit = Activity_Depth_Unit,
-         PARAMETER = Characteristic_Name, param_name, value, unit = Result_Unit)
+         PARAMETER = Characteristic_Name, param_name, value, unit = Result_Unit, Filtered_Fraction, Result_Comment)
 
 sacn$param_name[sacn$param_name == "ChlA_ppb"] <- "ChlA_ugL"
 sacn$unit[sacn$param_name == "ChlA_ppb"] <- "ug/l"
@@ -222,7 +224,41 @@ sacn$unit[sacn$param_name == "ChlA_ppb"] <- "ug/l"
 sacn$depth[!is.na(sacn$depth) & sacn$depth_unit == "ft"] <- 
   sacn$depth[!is.na(sacn$depth) & sacn$depth_unit == "ft"] * 0.3048
 sacn$depth_unit[sacn$depth_unit == "ft"] <- "m"
+
+# Check for duplicates in sacn
+sacn_dups <- sacn |> group_by(Location_ID, sample_date, depth, Activity_Type, param_name) |> 
+  mutate(num_samps = sum(!is.na(value))) |> filter(num_samps > 1) |> 
+  arrange(Location_ID, sample_date, depth, param_name) |> 
+    select(Location_ID, sample_date, depth_cat, depth, Activity_Type, PARAMETER, param_name, value, 
+           unit, num_samps, Filtered_Fraction, Activity_Comment, Result_Comment)
+
 ```
+
+<h4>Duplicates in the SACN data </h4>
+In general values are very close. Sometimes one is total and the other dissolved. Other times the dups are the same category. Going to take only the first per group, after sorting by Activity_Comment. 
+```{r}
+sdk <- kable(sacn_dups, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l'), 
+             caption = "Duplicate measurements within the same site, date, depth, and parameter. ") |> 
+       kable_styling(fixed_thead = TRUE, bootstrap_options = c('condensed'), 
+                     full_width = TRUE, position = 'left', font_size = 12) |> 
+       collapse_rows(1:7, valign = 'top')
+```
+
+```{r echo = F}
+sdk
+```
+
+Final dataset for SACN to bind with METC
+```{r}
+sacn_final <- sacn |> 
+  arrange(Activity_Comment) |>
+  group_by(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type,
+           sample_date, doy, year, month, depth_cat, depth, depth_unit,
+           PARAMETER, param_name, unit) |> 
+  summarize(value = first(value), .groups = 'drop')
+
+```
+
 
 <h4> Prepare METC data for binding with GLKN data</h4>
 Download all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. The data for this analysis were downloaded on 3/18/2025.
@@ -264,21 +300,52 @@ metc2 <- metc1 |>
 # Join METC data with param.csv for parameter abbreviations (param_name)
 metc_join <- left_join(metc2, params, by = c("PARAMETER" = "Parameter", "units" = "Units")) |>
   filter(!is.na(New_Name)) |>
-  select(Org_Code, Park_Code, Location_ID, Location_Name, sample_date, doy, year, month, depth_cat, depth,
+  mutate(Activity_Type = "Sample") |> 
+  select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, sample_date, doy, year, month, depth_cat, depth,
          depth_unit, PARAMETER, param_name = New_Name, value, unit= units)
 
+# Check for duplicate samples in the same site, date, depth, parameter
+metc_dup <- metc_join |> group_by(Location_ID, sample_date, depth_cat, depth, param_name) |> 
+  mutate(num_samps = sum(!is.na(value))) |> filter(num_samps > 1) |> 
+  arrange(Location_ID, sample_date, depth, param_name)
+
 ```
+
+<h4>Duplicates in the METC data </h4>
+In general values are very close. Sometimes one is total and the other dissolved. Other times the dups are the same category. Going to take only the first per group, after sorting by Activity_Comment. 
+```{r}
+mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l'), 
+             caption = "Duplicate measurements within the same site, date, depth, and parameter. ") |> 
+       kable_styling(fixed_thead = TRUE, bootstrap_options = c('condensed'), 
+                     full_width = TRUE, position = 'left', font_size = 12) |> 
+       collapse_rows(1:7, valign = 'top')
+```
+
+```{r echo = F}
+mdk
+```
+
+
+```{r}
+metc_final <- metc_join |> 
+  group_by(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type,
+           sample_date, doy, year, month, depth_cat, depth, depth_unit,
+           PARAMETER, param_name, unit) |> 
+  summarize(value = first(value), .groups = 'drop')
+
+```
+
 
 Keep only the parameters in common between GLKN and METC, then use row binding to combine the two datasets together.
 ```{r results = 'hide'}
 # Determine parameters from METC that are on the params.csv and drop those missing.
-metc_keep <- metc_join |> group_by(param_name) |> summarize(num_samps = sum(!is.na(value))) |> select(param_name) |> unique() |> c()
+metc_keep <- metc_final |> group_by(param_name) |> summarize(num_samps = sum(!is.na(value))) |> 
+  select(param_name) |> unique() |> c()
 
 # SACN- only keep METC params
-sacn2 <- sacn |> filter(param_name %in% metc_keep$param_name)
+sacn2 <- sacn_final |> filter(param_name %in% metc_keep$param_name)
 #table(sacn$param_name, sacn$Location_ID)
-
-full_dat1 <- rbind(sacn2, metc_join) |> filter(year > 2006 & year < 2025) # GLKN sites only have data from 2007 - 2024
+full_dat1 <- rbind(sacn2, metc_final) |> filter(year > 2006 & year < 2025) # GLKN sites only have data from 2007 - 2024
 ```
 
 <h4>Compile USGS discharge data</h4>
@@ -301,11 +368,22 @@ dp <-
 ggplot(dischg2, aes(x = Date, y = Flow, group = Location_ID, color = Location_ID)) + 
   geom_line() + theme_WQ() + labs(color = NULL) +
   scale_color_brewer(palette = "Set1")
+
+d_lm <- 
+ggplot(dis_wide_overlap, aes(x = Flow_USGS_STCR_23.5, y = Flow_USGS_STCR_0.2)) + 
+  geom_point(color = 'grey', alpha = 0.4) +
+  geom_smooth(method = 'lm') + theme_WQ() + geom_abline(slope = 1, intercept = 0)
+
 ```
 
 Plot of discharge for overlapping sample periods of the stream gages.
 ```{r echo = F}
 dp
+```
+
+Check of how well gage at 23.5 could predict discharge at 0.2. Error increases a bit for larger flows, but there's not a ton of data in the higher ranges and increase in variance is not terrible. The SACN_STCR_15.8 site is between the two gages, and I'm wondering if I can interpolate discharge for that site based on the other two gages. 
+```{r echo = F}
+d_lm
 ```
 
 
@@ -321,7 +399,8 @@ round(cor(dis_wide_overlap[,c("Flow_USGS_STCR_23.5", "Flow_USGS_STCR_0.2")]), 2)
 
 ```{r}
 mod <- lm(Flow_USGS_STCR_0.2 ~ Flow_USGS_STCR_23.5, data = dis_wide_overlap)
-summary(mod) # Slope is 0.96 Rsq 0.92. They're quite close. 
+tidy(mod)
+glance(mod) # Slope is 0.96 Rsq 0.92. They're quite close. 
 ```
 
 
@@ -343,10 +422,26 @@ full_dat2$site_order <- factor(full_dat2$Location_ID,
                                           "METC_STCR_12.4",  "METC_STCR_11.3", "SACN_STCR_2.0", "METC_STCR_0.1"))
 full_dat2$sample_date <- as.Date(full_dat2$sample_date, format = "%Y-%m-%d")
 
-full_dat <- left_join(full_dat2, 
+# Add discharge as columns, so they can be modeled as covariates
+full_dat3 <- left_join(full_dat2, 
                       dis_wide |> select(Date, Flow_USGS_STCR_0.2, Flow_USGS_STCR_23.5, 
                                          Flow_cd_USGS_STCR_0.2, Flow_cd_USGS_STCR_23.5), 
                       by = c("sample_date" = "Date"))
+
+# Add water temperature as a column, so it can be modeled as a covariate. Because there are occasionally
+# duplicate water temps in the METC data, but they're always within a few tenths of a degree, taking 
+# the average of the two measurements. 
+wtemp <- full_dat3 |> filter(param_name == "TempWater_C") |> 
+  select(Location_ID, sample_date, Activity_Type, depth_cat, depth, WaterTemp_C = value) |> 
+  filter(!is.na(WaterTemp_C)) |> 
+  group_by(Location_ID, sample_date, Activity_Type, depth_cat, depth) |> 
+  summarize(WaterTemp_C = mean(WaterTemp_C), .groups = 'drop')
+
+```
+
+```{r}
+full_dat <- left_join(full_dat3, wtemp, by = c("Location_ID", "sample_date", "depth"))
+head(full_dat)
 
 params_site_year <- full_dat |> group_by(Site = site_abbr, Parameter = param_name, Year = year, Org_Code) |> 
   summarize(Num_Samps = sum(!is.na(value)),
