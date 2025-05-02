@@ -655,16 +655,16 @@ Main takeaways from sampling intensity:
 <li>Parameters and sites to model for redundancy analyses </li>
   <ul>
   <li><b>ChlA_ugL</b>: Good overlap among all sites and years. Analyze for all sites. </li>
-  <li><b>Cl_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites. </li>
-  <li><b>DO_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); good coverage in GLKN sites. </li>
+  <li><b>Cl_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples with only occasionally censored data in GLKN sites. </li>
+  <li><b>DO_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); good coverage in GLKN sites with only occasionally censored data in GLKN sites. </li>
   <li><b>NO2+NO3_ugL</b>: Analyze for METC_23.6 and METC_0.1 starting in 2018.</li>
   <li><b>P_ugL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites .</li>
-  <li><b>pH</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); good coverage in GLKN sites. </li>
-  <li><b>Secchi_m</b>: Good overlap among all sites and years. Analyze for all sites. </li>
-  <li><b>SO4_mgL</b>: Analyze for METC_23.6 and METC_0.1 (biweekly until 2019); periodic samples in GLKN sites. no new records since 2016.</li>
+  <li><b>pH</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); good coverage in GLKN sites with some missing data in 2020. </li>
+  <li><b>Secchi_m</b>: Good overlap among all sites and years. Occasionally missing for GLKN sites. Analyze for all sites. </li>
+  <li><b>SO4_mgL</b>: Analyze for METC_23.6 and METC_0.1 (biweekly until 2019); periodic samples in GLKN sites.</li>
   <li><b>SpecCond_uScm</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); good coverage in GLKN sites. </li>
   <li><b>TempWater_C</b>:  Good overlap among all METC sites and years. Analyze for all sites. SACN_15.8 is the only GLKN site with data past 2010.</li>
-  <li><b>TSS_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites.</li>
+  <li><b>TSS_mgL</b>: Analyze for METC_23.6 and METC_0.1 (~continuous record); periodic samples in GLKN sites, with occasional censored or non-detects.</li>
   </ul>
   
 <li>Parameters that may be included after first cut: </li>
@@ -681,9 +681,9 @@ Main takeaways from sampling intensity:
   <li><b>K_mgL</b>: No new samples since 2020 in METC.</li>
   <li><b>Mg_mgL</b>: No new samples since 2020 in METC.</li>
   <li><b>Na_mgL</b>: No new samples since 2020 in METC.</li>
-  <li><b>NH4_ugL</b>: No new samples since 2014 in METC.</li>
+  <li><b>NH4_ugL</b>: No new samples since 2014 in METC, and fair amount of censored samples in GLKN.</li>
   <li><b>Si_mgL</b>: No new samples since 2021 in METC. </li>
-  <li><b>Transp_cm</b>: No new samples since 2016in METC. </li>
+  <li><b>Transp_cm</b>: No new samples since 2016 in METC, and lots of censored data in GLKN sites. </li>
   </ul>
 </ul>
 
