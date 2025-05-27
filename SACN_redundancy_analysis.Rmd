@@ -207,7 +207,8 @@ importData(type = 'zip', filepath = river_zip)
 # Site list
 lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
 # pull in all results for Lk St. Croix sites
-sacn <- getResults(park = "SACN", site = lksc, sample_type = "VS",
+sacn <- getResults(park = "SACN", site = lksc, 
+                   sample_type = "VS", #drops QAQC samples
                    parameter = 'all',
                    months = 1:12,
                    sample_depth = 'all',
@@ -254,7 +255,17 @@ sdk <- kable(sacn_dups, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', '
 sdk
 ```
 
-Final dataset for SACN to bind with METC
+Missing depths in GLKN SACN data. Only a subset of parameters are regularly sampled as a depth profile. These include <b>DO_mgL</b>, <b>DOsat_pct</b>, <b>pH</b>, <b>SpecCond_uScm</b>, and <b>TempWater_C</b>. 
+```{r}
+# Check for NAs in depth category. Is it safe to assume these are surface measurements?
+table(sacn$depth_cat, complete.cases(sacn$depth))
+table(sacn$param_name, complete.cases(sacn$depth))
+table(sacn$param_name, sacn$depth_cat, useNA = 'always')
+
+```
+
+
+Final dataset for GLKN SACN to bind with METC
 ```{r}
 sacn_final <- sacn |> 
   arrange(Activity_Comment) |>
@@ -290,6 +301,10 @@ sacn_dt <- datatable(
                 dom = "Blfrtip", buttons = c('copy', 'csv', 'print')),
                 filter = list(position = 'top', clear = FALSE)#,
                 )
+```
+
+```{r}
+sacn_dt
 ```
 
 
@@ -374,7 +389,7 @@ qual_dt <- datatable(
 ```
 
 <h4>METC data qualifiers that are not "Valid" by site, parameter, and year </h4>
-Seems there are a bunch of preliminary records in early years, kind of like how we treat accepted versus certified in our data. But seems like we should drop suspect. 
+Seems there are a bunch of preliminary records in early years, kind of like how we treat accepted versus certified in our data? But seems like we should drop suspect. 
 ```{r}
 qual_dt
 ```
@@ -764,3 +779,8 @@ tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
 param_site_mat <- rbind(alk, chla, cl, doc, do, nox, p, ph, sec, so4, sc, tmp, tss)
 
 ```
+
+
+Things to check on
+1. Depth not always recorded in GLKN data. Should I assume that's a surface measurement?
+
