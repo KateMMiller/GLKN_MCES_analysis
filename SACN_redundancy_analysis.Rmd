@@ -341,9 +341,16 @@ metc1$value_cen <- metc1$RESULT
 metc2 <- metc1 |>
   mutate(value = ifelse(PARAMETER %in% c( "Chlorophyll-a, Pheo-Corrected",
                                            "Total Nitrate/Nitrite N, Unfiltered",
-                                           "Total Phosphorus, Unfiltered"),
-                                           RESULT/1000,
-                                           RESULT)) |>
+                                           "Total Phosphorus, Unfiltered",
+                                           "Ammonia Nitrogen, Filtered"),
+                                           RESULT*1000,
+                                           RESULT),
+         UNITS = ifelse(PARAMETER %in% c( "Chlorophyll-a, Pheo-Corrected",
+                                           "Total Nitrate/Nitrite N, Unfiltered",
+                                           "Total Phosphorus, Unfiltered",
+                                           "Ammonia Nitrogen, Filtered"),
+                                           "ug/L",
+                                           UNITS)) |>
   select(Org_Code, Park_Code, Location_ID, Location_Name = NAME, sample_date, doy, year, month,
          depth_cat, depth = SAMPLE_DEPTH_m, depth_unit, PARAMETER, value, units = UNITS, 
          qualifier = QUALIFIER, censored, value_cen)
@@ -355,6 +362,7 @@ metc_join <- left_join(metc2, params, by = c("PARAMETER" = "Parameter", "units" 
   select(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type, sample_date,
          doy, year, month, depth_cat, depth,
          depth_unit, PARAMETER, param_name = New_Name, value, unit = units, qualifier, censored, value_cen)
+
 
 # Check for duplicate samples in the same site, date, depth, parameter
 metc_dup <- metc_join |> group_by(Location_ID, sample_date, depth_cat, depth, param_name, qualifier) |> 
@@ -649,7 +657,7 @@ param_detect_heatmap <- function(dat = params_site_year1, param = NA){
 param_list <- sort(unique(full_dat$param_name))
 ```
 
-```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F, fig.height=10}
+```{r sym_heatmap_chunk, warning = F, message = F, eval = FALSE, echo = F, fig.height = 10, fig.width = 8}
 p <- param_detect_heatmap(dat = df, param = prm)
 print(p)
 ```
@@ -725,7 +733,7 @@ for(i in seq_along(param_list)){
 dis_ym_plot
 ```
 
-#### Final Dataset
+#### Final Dataset {.tabset}
 ```{r}
 final_dat <- full_dat |> filter(month %in% 4:11)
 
@@ -755,32 +763,99 @@ dt
 write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
 ```
 
-### Analysis
-#### Final Params by Site Matrix
-Creating data frame of site and parameter matrix for easier iteration later
-```{r}
+### Analysis {.tabset}
+```{r echo = F, include = F}
 all_sites <- sort(unique(full_dat$site_order))
-metc2_sacn <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
+core_sites <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
 
-alk <- data.frame(Location_ID = metc2_sacn, param_name = "Alkalinity_mgL")
-chla <- data.frame(Location_ID = all_sites, param_name = "ChlA_ugL")
-cl <- data.frame(Location_ID = metc2_sacn, param_name = "Cl_mgL")
-doc <- data.frame(Location_ID = metc2_sacn, param_name = "DOC_mgL")
-do <- data.frame(Location_ID = metc2_sacn, param_name = "DO_mgL")
-nox <- data.frame(Location_ID = metc2_sacn, param_name = "NO2+NO3_ugL")
-p <- data.frame(Location_ID = metc2_sacn, param_name = "P_ugL")
-ph <- data.frame(Location_ID = metc2_sacn, param_name = "pH")
-sec <- data.frame(Location_ID = all_sites, param_name = "Secchi_m")
-so4 <- data.frame(Location_ID = metc2_sacn, param_name = "SO4_mgL")
-sc <- data.frame(Location_ID = metc2_sacn, param_name = "SpecCond_uScm")
-tmp <- data.frame(Location_ID = all_sites, param_name = "TempWater_C")
-tss <- data.frame(Location_ID = metc2_sacn, param_name = "TSS_mgL")
+param_site_mat <- rbind(
+  data.frame(Location_ID = core_sites, param_name = "Alkalinity_mgL"),
+  data.frame(Location_ID = all_sites, param_name = "ChlA_ugL"),
+  data.frame(Location_ID = core_sites, param_name = "Cl_mgL"),
+  data.frame(Location_ID = core_sites, param_name = "DOC_mgL"),
+  data.frame(Location_ID = core_sites, param_name = "DO_mgL"),
+  data.frame(Location_ID = core_sites, param_name = "NO2+NO3_ugL"),
+  data.frame(Location_ID = core_sites, param_name = "P_ugL"),
+  data.frame(Location_ID = core_sites, param_name = "pH"),
+  data.frame(Location_ID = all_sites, param_name = "Secchi_m"),
+  data.frame(Location_ID = core_sites, param_name = "SO4_mgL"),
+  data.frame(Location_ID = core_sites, param_name = "SpecCond_uScm"),
+  data.frame(Location_ID = all_sites, param_name = "TempWater_C"),
+  data.frame(Location_ID = core_sites, param_name = "TSS_mgL"))
 
-param_site_mat <- rbind(alk, chla, cl, doc, do, nox, p, ph, sec, so4, sc, tmp, tss)
+core_params <- unique(param_site_mat$param_name[param_site_mat$Location_ID == "METC_STCR_23.6"])
+```
+
+#### Loess smoothed trends core sites {.tabset}
+```{r echo = F}
+dat <- read.csv("./data/local/GLKN_METC_combined_data.csv")
+dat$year_cen <- dat$year - min(dat$year)
+dat$date <- as.Date(dat$sample_date, format = "%Y-%m-%d")
+dat$site <- factor(gsub("_STCR", "", dat$Location_ID),
+                   levels = c("METC_23.6", #"METC_23.4",
+                              "METC_22.5", "METC_22.3",
+                              "SACN_20.0", "METC_16.6", "SACN_15.8", "METC_15.3",
+                              "METC_12.4", "METC_11.3", "SACN_2.0", "METC_0.1"))
+
+core_sites_abbr <- c("METC_23.6", "SACN_20.0", "SACN_15.8", "SACN_2.0", "METC_0.1")
+
+#---- From JP----
+format_data <- function(dat){dat |>
+    mutate(ylength = ifelse(leap_year(year), 366, 365),
+           wcos = cos(2*pi*doy/ylength),
+           wsin = sin(2*pi*doy/ylength),
+           numday = as.numeric(date)/1000,
+           cont_year = year+(doy/ylength), # same as cont_year in wqtrends package
+           nonzero = ifelse(value > 0, 1, 0))}
+
+dat2 <- format_data(dat) |> filter(month %in% c(4:11))
+
+all_sites <- sort(unique(dat2$site))
+#params_plot <- sort(unique(param_site_mat$param_name))
+params_plot <- sort(unique(dat2$param_name))
+
+plot_water_series <- function(df = dat2, param, sites = core_sites_abbr){
+  p <-
+    ggplot(df |> filter(param_name %in% param) |> filter(site %in% sites) |> 
+             filter(depth_cat %in% c("Surface", "surface") | is.na(depth_cat)) |> droplevels(),
+           aes(x = cont_year, y = value, group = site, color = site)) +
+    geom_point(aes(shape = site), alpha = 0.3, size = 2) +
+    geom_smooth(se = F) +
+    scale_color_brewer(guide = "legend", palette = "Set1") +
+    scale_shape_manual(values = c(16, 19, 19, 19, 16)) +
+    facet_wrap(~site, nrow = 1) +
+    theme_WQ() +
+    labs(y = param, x = NULL, color = "Site", shape = "Site")
+  p
+}
 
 ```
 
 
+```{r water_series_chunk, warning = F, message = F, eval = FALSE, echo = F, fig.height = 8, fig.width = 10}
+p <- plot_water_series(df = dat2, param = prm)
+print(p)
+```
+
+
+```{r results = 'asis', fig.height = 8, fig.width = 10, echo = F}
+for(i in seq_along(params_plot)){
+  prm <- params_plot[[i]]
+  cat("##### ", prm, "\n\n")
+  cat(paste0("Loess smoothed trends in surface <b>", prm, "</b> for each core monitoring site for April through November monitoring period.", "\n"))
+  <<water_series_chunk>>
+  cat("\n\n")
+  cat("\n\n")
+}
+
+```
+
+#### gamms on core params/sites {.tabset}
+
+
+
+### Notes
 Things to check on
-1. Depth not always recorded in GLKN data. Should I assume that's a surface measurement?
+1. Depth not always recorded in GLKN data. Where not recorded, appears to be metrics that are only collected at one depth. Make sure this is true.
+2. Consider changing ChlA-ugL, Nh4_ugL, NO2+NO3_ugL, P_ugL to mgL, because METC data are reported in mgL and only have 2 significant figures. Makes the data look discrete on a plot when it's really not.
 
