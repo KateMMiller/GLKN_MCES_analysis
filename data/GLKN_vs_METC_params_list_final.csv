@@ -4,7 +4,7 @@
 Calcium,5,GLKN,mg/l,Ca_mgL,
 "Calcium, Filtered",600,METC,mg/L,Ca_mgL,
 "Chlorophyll a, free of pheophytin",11,GLKN,ug/l,ChlA_ugL,
-"Chlorophyll-a, Pheo-Corrected",2231,METC,ug/l,ChlA_ugL,convert to ug/L by mgl*1000
+"Chlorophyll-a, Pheo-Corrected",2231,METC,ug/L,ChlA_ugL,convert to ug/L by mgl*1000
 Chloride,5,GLKN,mg/l,Cl_mgL,
 "Chloride, Unfiltered",1546,METC,mg/L,Cl_mgL,
 Dissolved Oxygen,1819,METC,mg/L,DO_mgL,
@@ -23,9 +23,9 @@ Sodium,5,GLKN,mg/l,Na_mgL,
 "Ammonia Nitrogen, Filtered",442,METC,mg/L,NH4_ugL,
 "Nitrogen, Ammonium (NH4) as N",11,GLKN,ug/l,NH4_ugL,
 "Nitrogen, Nitrite (NO2) + Nitrate (NO3) as N",11,GLKN,ug/l,NO2+NO3_ugL,
-"Total Nitrate/Nitrite N, Unfiltered",551,METC,ug/l,NO2+NO3_ugL,convert to ug/L by mgl*1000
+"Total Nitrate/Nitrite N, Unfiltered",551,METC,ug/L,NO2+NO3_ugL,convert to ug/L by mgl*1000
 Phosphorus as P,12,GLKN,ug/l,P_ugL,
-"Total Phosphorus, Unfiltered",1501,METC,ug/l,P_ugL,convert to ug/L by mgl*1000
+"Total Phosphorus, Unfiltered",1501,METC,ug/L,P_ugL,convert to ug/L by mgl*1000
 pH,84,GLKN,None,pH,
 pH,1779,METC,pH,pH,
 "Depth, Secchi Disk Depth",10,GLKN,m,Secchi_m,
