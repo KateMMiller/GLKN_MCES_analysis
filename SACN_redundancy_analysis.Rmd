@@ -189,6 +189,8 @@ library(tidyverse)
 library(knitr)
 library(kableExtra)
 library(DT)
+library(wqtrends)
+library(gridExtra)
 params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_analysis/refs/heads/main/data/GLKN_vs_METC_params_list_final.csv")
 ```
 
@@ -851,9 +853,116 @@ for(i in seq_along(params_plot)){
 ```
 
 #### gamms on core params/sites {.tabset}
+```{r echo = F}
+wqdat <- dat2 |> select(date, station = site, param = param_name, value, doy, cont_year, yr = year, mo = month) |> 
+  filter(!is.na(value))
+```
+
+##### Cl_mgL
+```{r}
+ylabel = "Chlorophyll-a (ug/L)"
+metc23.6 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "METC_23.6")
+mod23.6 <- anlz_gam(metc23.6)
+anlz_smooth(mod23.6)
+anlz_fit(mod23.6)
+metc23.6_doy <- show_prddoy(mod23.6, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+metc23.6_series <- show_prdseries(mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+metc23.6_season <- show_prdseason(mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+
+sacn20.0 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "SACN_20.0")
+mod20.0 <- anlz_gam(sacn20.0)
+anlz_smooth(mod20.0)
+anlz_fit(mod20.0)
+sacn20.0_doy <- show_prddoy(mod20.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+sacn20.0_series <- show_prdseries(mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+sacn20.0_season <- show_prdseason(mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+
+sacn15.8 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "SACN_15.8")
+mod15.8 <- anlz_gam(sacn15.8)
+anlz_smooth(mod15.8)
+anlz_fit(mod15.8)
+sacn15.8_doy <- show_prddoy(mod15.8, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+sacn15.8_series <- show_prdseries(mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+sacn15.8_season <- show_prdseason(mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+
+sacn2.0 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "SACN_2.0")
+mod2.0 <- anlz_gam(sacn2.0)
+anlz_smooth(mod2.0)
+anlz_fit(mod2.0)
+sacn2.0_doy <- show_prddoy(mod2.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+sacn2.0_series <- show_prdseries(mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+sacn2.0_season <- show_prdseason(mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+
+metc0.1 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "METC_0.1")
+mod0.1 <- anlz_gam(metc0.1)
+anlz_smooth(mod0.1)
+anlz_fit(mod0.1)
+metc0.1_doy <- show_prddoy(mod0.1, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+metc0.1_series <- show_prdseries(mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+metc0.1_season <- show_prdseason(mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+
+grid.arrange(metc23.6_doy, sacn20.0_doy, sacn15.8_doy, sacn2.0_doy, metc0.1_doy, ncol = 1)
+grid.arrange(metc23.6_series, sacn20.0_series, sacn15.8_series, sacn2.0_series, metc0.1_series, ncol = 1)
+grid.arrange(metc23.6_season, sacn20.0_season, sacn15.8_season, sacn2.0_season, metc0.1_season, ncol = 1)
+```
+
+##### DOC_mgL
+```{r}
+ylabel = "Dissolved Organic Carbon (mg/L)"
+metc23.6 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "METC_23.6")
+mod23.6 <- anlz_gam(metc23.6)
+anlz_smooth(mod23.6)
+anlz_fit(mod23.6)
+metc23.6_doy <- show_prddoy(mod23.6, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+metc23.6_series <- show_prdseries(mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+metc23.6_season <- show_prdseason(mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+
+sacn20.0 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "SACN_20.0")
+mod20.0 <- anlz_gam(sacn20.0)
+anlz_smooth(mod20.0)
+anlz_fit(mod20.0)
+sacn20.0_doy <- show_prddoy(mod20.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+sacn20.0_series <- show_prdseries(mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+sacn20.0_season <- show_prdseason(mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+
+sacn15.8 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "SACN_15.8")
+mod15.8 <- anlz_gam(sacn15.8)
+anlz_smooth(mod15.8)
+anlz_fit(mod15.8)
+sacn15.8_doy <- show_prddoy(mod15.8, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+sacn15.8_series <- show_prdseries(mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+sacn15.8_season <- show_prdseason(mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+
+sacn2.0 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "SACN_2.0")
+mod2.0 <- anlz_gam(sacn2.0)
+anlz_smooth(mod2.0)
+anlz_fit(mod2.0)
+sacn2.0_doy <- show_prddoy(mod2.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+sacn2.0_series <- show_prdseries(mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+sacn2.0_season <- show_prdseason(mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+
+metc0.1 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "METC_0.1")
+mod0.1 <- anlz_gam(metc0.1)
+anlz_smooth(mod0.1)
+anlz_fit(mod0.1)
+metc0.1_doy <- show_prddoy(mod0.1, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+metc0.1_series <- show_prdseries(mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+metc0.1_season <- show_prdseason(mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
 
 
+grid.arrange(metc23.6_doy, sacn20.0_doy, sacn15.8_doy, sacn2.0_doy, metc0.1_doy, ncol = 1)
+grid.arrange(metc23.6_series, sacn20.0_series, sacn15.8_series, sacn2.0_series, metc0.1_series, ncol = 1)
+grid.arrange(metc23.6_season, sacn20.0_season, sacn15.8_season, sacn2.0_season, metc0.1_season, ncol = 1)
+```
 
+##### NO2+NO3_ugL
+##### P_ugL
+##### pH
+##### SO4_mgL
+##### SpecCond_uScm
+##### TSS_mgL
+##### Alkalinity_mgL
+Putting last because METC added in 2016
 ### Notes
 Things to check on
 1. Depth not always recorded in GLKN data. Where not recorded, appears to be metrics that are only collected at one depth. Make sure this is true.
