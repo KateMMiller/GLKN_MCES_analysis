@@ -20,7 +20,7 @@ Magnesium,5,GLKN,mg/l,Mg_mgL,
 Nitrogen,12,GLKN,ug/l,N_ugL,
 Sodium,5,GLKN,mg/l,Na_mgL,
 "Sodium, Filtered",600,METC,mg/L,Na_mgL,
-"Ammonia Nitrogen, Filtered",442,METC,mg/L,NH4_ugL,
+"Ammonia Nitrogen, Filtered",442,METC,ug/L,NH4_ugL,convert to ug/L by mgl*1000
 "Nitrogen, Ammonium (NH4) as N",11,GLKN,ug/l,NH4_ugL,
 "Nitrogen, Nitrite (NO2) + Nitrate (NO3) as N",11,GLKN,ug/l,NO2+NO3_ugL,
 "Total Nitrate/Nitrite N, Unfiltered",551,METC,ug/L,NO2+NO3_ugL,convert to ug/L by mgl*1000
