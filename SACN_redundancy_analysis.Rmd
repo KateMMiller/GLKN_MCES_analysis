@@ -26,7 +26,7 @@ All code use for this analysis are posted on GitHub in the following repository:
 Sites included in this analysis are plotted in the map below.
 <div class = "toggle"><button>Show Code</button>
 
-```{r warning = F, message = F, results = 'hide'}
+```{r chnk2, warning = F, message = F, results = 'hide'}
 library(dataRetrieval)
 gages <- c("05341550", "05344490")
 gage_params <- c("00060", "00010", "00400") # Discharge, Temp, pH
@@ -42,7 +42,7 @@ names(gagedat)[names(gagedat) == "dec_long_va"] <- "Longitude"
 # dv = daily values; uv = instantaeous value; qw = water quality
 ```
 
-```{r echo = F, warning = F, message = F, results = 'hide'}
+```{r chnk3, echo = F, warning = F, message = F, results = 'hide'}
 # Code for leaflet map
 library(tidyverse)
 library(sf)
@@ -164,7 +164,7 @@ leaflet(height = 650, width = 800) |>
 ```
 </div><br>
 <br>
-```{r echo = F, warning = F, message = F}
+```{r chnk4, echo = F, warning = F, message = F}
 leaf
 ```
 
@@ -172,12 +172,12 @@ leaf
 #### Code Prep
 <h4> Install waterGLKN R package </h4>
 The waterGLKN package is still a WIP, but at least makes it easier to import and query of GLKN water data using the format of the latest rivers and inland lakes data packages. Must also have RTools44 installed, which can be installed via the Software Center, and the devtools R package. 
-```{r echo = T, eval = F}
+```{r chnk5, echo = T, eval = F}
 devtools::install_github("katemmiller/waterGLKN")
 library(waterGLKN)
 ```
 
-```{r include = F}
+```{r chnk6, include = F}
 library(waterGLKN)
 ```
 
@@ -188,7 +188,7 @@ Once open in R Studio. Press Control + A to select all of the code. Then Control
 
 <h4> Load other dependencies and imports</h4>
 The params csv was developed by GLKN staff manually matching parameter names between GLKN and METC datasets. The csv is posted on the GitHub repo. Note that the waterGLKN package already adds a column of parameter abbreviations following the same naming convention as the params.csv below.
-```{r results = 'hide', warning = F, message = FALSE}
+```{r chnk7, results = 'hide', warning = F, message = FALSE}
 library(tidyverse)
 library(knitr)
 library(kableExtra)
@@ -202,7 +202,7 @@ params <- read.csv("https://raw.githubusercontent.com/KateMMiller/GLKN_MCES_anal
 #### Compile Data
 <h4> Download Data Package and import into R</h4>
 Download the latest <a href="https://irma.nps.gov/DataStore/Reference/Profile/2309369"> GLKN Rivers Data Package</a>. The easiest way to do it is to download all as a zip. The file path below is where that zip is stored on Kate's machine and the name of the zip file. Then import the data package into R using the waterGLKN function `importData()`.
-```{r results = 'hide'}
+```{r chnk8, results = 'hide'}
 library(waterGLKN)
 river_zip = "../data/GLKN_water/records-2309369.zip"
 importData(type = 'zip', filepath = river_zip)
@@ -210,7 +210,7 @@ importData(type = 'zip', filepath = river_zip)
 
 
 <h4> Filter Results.csv by Lake St. Croix sites and prepare data for binding with METC data. </h4>
-```{r results = 'hide'}
+```{r chnk9, results = 'hide'}
 # Site list
 lksc <- c("SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0")
 # pull in all results for Lk St. Croix sites
@@ -251,7 +251,7 @@ sacn_dups <- sacn |> group_by(Location_ID, sample_date, depth, Activity_Type, pa
 <h4>Duplicates in the SACN data </h4>
 In general values are very close. Sometimes one is total and the other dissolved. Other times the dups are the same category. Going to take only the first per group, after sorting by Activity_Comment. 
 <div class = "toggle"><button>Show Code</button>
-```{r}
+```{r chnk10}
 sdk <- kable(sacn_dups, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l'), 
              caption = "Duplicate measurements within the same site, date, depth, and parameter. ") |> 
        kable_styling(fixed_thead = TRUE, bootstrap_options = c('condensed'), 
@@ -261,14 +261,14 @@ sdk <- kable(sacn_dups, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', '
 
 </div><br>
 
-```{r echo = F}
+```{r chnk11, echo = F}
 sdk
 ```
 
 Missing depths in GLKN SACN data. Only a subset of parameters are regularly sampled as a depth profile. These include <b>DO_mgL</b>, <b>DOsat_pct</b>, <b>pH</b>, <b>SpecCond_uScm</b>, and <b>TempWater_C</b>. 
 
 <div class = "toggle"><button>Show Code</button>
-```{r}
+```{r chnk12}
 # Check for NAs in depth category. Is it safe to assume these are surface measurements?
 miss_depth <- data.frame(table(sacn$depth_cat, complete.cases(sacn$depth))) |> arrange(Var1, Var2) |> 
   pivot_wider(names_from = Var2, values_from = Freq) 
@@ -295,17 +295,17 @@ kable(miss_depth_param, format = 'html', align = c('l', 'c', 'c'),
 ```
 </div><br>
 
-```{r echo = F}
+```{r chnk13, echo = F}
 kbl_miss_dc
 ```
 
 
-```{r echo = F}
+```{r chnk14, echo = F}
 kbl_miss_dcp
 ```
 
 Final dataset for GLKN SACN to bind with METC
-```{r}
+```{r chnk15}
 sacn_final <- sacn |> 
   arrange(Activity_Comment) |>
   group_by(Org_Code, Park_Code, Location_ID, Location_Name, Activity_Type,
@@ -317,7 +317,7 @@ sacn_final <- sacn |>
 ```
 
 <h4>SACN Non-detect Conditions</h4>
-```{r}
+```{r chnk16}
 sacn_qual <- sacn_final |> group_by(Location_ID, year, month, param_name, qualifier) |> 
   summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> 
   filter(qualifier != "Detected and Quantified")
@@ -342,14 +342,14 @@ sacn_dt <- datatable(
                 )
 ```
 
-```{r}
+```{r chnk17}
 sacn_dt
 ```
 
 
 <h4> Prepare METC data for binding with GLKN data</h4>
 Download all data from 2006 and later from the METC's <a href="https://eims.metc.state.mn.us/AdvancedSearch">Environmental Information Management Systems (EIMS)</a> web server for all monitoring locations within Lake St. Croix. The data for this analysis were downloaded on 3/18/2025.
-```{r results = 'hide'}
+```{r chnk18, results = 'hide'}
 # metc data from webserver
 metc <- read.csv("./data/local/2025-03-18_1359_56_MCES_EIMS_data.csv")
 
@@ -411,7 +411,7 @@ metc_dup <- metc_join |> group_by(Location_ID, sample_date, depth_cat, depth, pa
 ```
 
 <h4>METC Data Qualifiers</h4>
-```{r}
+```{r chnk19}
 metc_qual <- metc_join |> group_by(Location_ID, year, month, param_name, qualifier) |> 
   summarize(num_samps = sum(!is.na(value)), .groups = 'drop') |> filter(qualifier != "Valid")
 
@@ -437,13 +437,13 @@ qual_dt <- datatable(
 
 <h4>METC data qualifiers that are not "Valid" by site, parameter, and year </h4>
 Seems there are a bunch of preliminary records in early years, kind of like how we treat accepted versus certified in our data? But seems like we should drop suspect. 
-```{r}
+```{r chnk20}
 qual_dt
 ```
 
 <h4>Duplicates in the METC data </h4>
 In general values are very close. Sometimes one is total and the other dissolved. Other times the dups are the same category. Going to take only the first per group, after sorting by Activity_Comment. 
-```{r}
+```{r chnk21}
 mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c', 'c', 'l', 'l', 'l', rep('c', 6)), 
              caption = "Duplicate measurements within the same site, date, depth, and parameter. ") |> 
        kable_styling(fixed_thead = TRUE, bootstrap_options = c('condensed'), 
@@ -451,7 +451,7 @@ mdk <- kable(metc_dup, format = 'html', align = c(rep('c', 4), 'l', 'l', 'l', 'c
        collapse_rows(1:7, valign = 'top')
 ```
 
-```{r echo = F}
+```{r chnk22, echo = F}
 mdk
 ```
 
@@ -467,7 +467,7 @@ metc_final <- metc_join |>
 
 
 Keep only the parameters in common between GLKN and METC, then use row binding to combine the two datasets together.
-```{r results = 'hide'}
+```{r chnk23, results = 'hide'}
 # Determine parameters from METC that are on the params.csv and drop those missing.
 metc_keep <- metc_final |> group_by(param_name) |> summarize(num_samps = sum(!is.na(value))) |> 
   select(param_name) |> unique() |> c()
@@ -479,7 +479,7 @@ full_dat1 <- rbind(sacn2, metc_final) |> filter(year > 2006 & year < 2025) # GLK
 ```
 
 <h4>Compile USGS discharge data</h4>
-```{r cache = T}
+```{r chnk24, cache = T}
 dischg <- renameNWISColumns(readNWISdv(siteNumbers = gages, parameterCd = "00060"))
 gages <- c("05341550", "05344490")
 dischg$Location_ID[dischg$site_no == gages[1]] <- "USGS_STCR_23.5"
@@ -507,27 +507,27 @@ ggplot(dis_wide_overlap, aes(x = Flow_USGS_STCR_23.5, y = Flow_USGS_STCR_0.2)) +
 ```
 
 Plot of discharge for overlapping sample periods of the stream gages.
-```{r echo = F}
+```{r chnk25, echo = F}
 dp
 ```
 
 Check of how well gage at 23.5 could predict discharge at 0.2. Error increases a bit for larger flows, but there's not a ton of data in the higher ranges and increase in variance is not terrible. The SACN_STCR_15.8 site is between the two gages, and I'm wondering if I can interpolate discharge for that site based on the other two gages. 
-```{r echo = F}
+```{r chnk26, echo = F}
 d_lm
 ```
 
 
 Check on flow rating. Most are A, a few P (provisional). The 'e' refers to estimated. 
-```{r}
+```{r chnk27}
 table(dischg$Location_ID, dischg$Flow_cd)
 ```
 
 Correlation in discharge between the two sites
-```{r}
+```{r chnk28}
 round(cor(dis_wide_overlap[,c("Flow_USGS_STCR_23.5", "Flow_USGS_STCR_0.2")]), 2)[1,2] # 0.96
 ```
 
-```{r}
+```{r chnk29}
 mod <- lm(Flow_USGS_STCR_0.2 ~ Flow_USGS_STCR_23.5, data = dis_wide_overlap)
 summary(mod)
 ```
@@ -535,7 +535,7 @@ summary(mod)
 
 ### Sampling Intensity {.tabset}
 #### Code
-```{r}
+```{r chnk30}
 full_dat2 <- full_dat1 |> filter(!Location_ID %in% "METC_STCR_23.4") # 23.4 has a very narrow period of record. Dropping
 
 full_dat2$site_abbr <- factor(gsub("_STCR", "", full_dat2$Location_ID),
@@ -568,7 +568,7 @@ wtemp <- full_dat3 |> filter(param_name == "TempWater_C") |>
 
 ```
 
-```{r}
+```{r chnk31}
 full_dat <- left_join(full_dat3, wtemp, by = c("Location_ID", "sample_date", "depth", "depth_cat")) 
 
 param_site_year_qual <- full_dat |> 
@@ -703,7 +703,7 @@ print(p)
 
 #### Sampling Matrix
 
-```{r echo = F}
+```{r chnk32, echo = F}
 psy_tab
 ```
 
@@ -749,12 +749,12 @@ Main takeaways from sampling intensity:
   </ul>
 </ul>
 
-```{r echo = F, out.width = "100%", fig.height = 10, fig.cap="Heatmap of sampling intensity by site, parameter and year, such that blue bins were sampled 1-5 times within a given year and site, red bins more than 20 samples within a given year, etc. Sites or ordered by stream mile. Sites with METC are monitored by the MetCouncil. Sites with SACN are monitored by GLKN."}
+```{r chnk33, echo = F, out.width = "100%", fig.height = 10, fig.cap="Heatmap of sampling intensity by site, parameter and year, such that blue bins were sampled 1-5 times within a given year and site, red bins more than 20 samples within a given year, etc. Sites or ordered by stream mile. Sites with METC are monitored by the MetCouncil. Sites with SACN are monitored by GLKN."}
 psy_plot
 ```
 
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'asis', fig.height = 10, echo = F}
+```{r results = 'asis', fig.height = 10, fig.width = 8, echo = F}
 for(i in seq_along(param_list)){
   prm <- param_list[[i]]
   df <- params_site_year1 |> filter(Parameter %in% prm)
@@ -769,13 +769,14 @@ for(i in seq_along(param_list)){
 </div><br>
 
 ##### Discharge
-```{r echo = F, fig.height = 10}
+```{r chnk55,  echo = F, fig.height = 10}
 dis_ym_plot
 ```
 
 #### Final Dataset {.tabset}
+
 <div class = "toggle"><button>Show Code</button>
-```{r}
+```{r chnk56}
 final_dat <- full_dat |> filter(month %in% 4:11)
 
 dt <- datatable(final_dat, 
@@ -796,42 +797,32 @@ dt <- datatable(final_dat,
                 filter = list(position = 'top', clear = FALSE)#,
                 )
 
-dt
 ```
 </div><br>
 
-```{r eval = F, echo = F, include = F}
+```{r, chnk57, echo = F}
+dt
+```
+
+
+```{r chnk58, eval = F, echo = F, include = F}
 write.csv(full_dat, "./data/local/GLKN_METC_combined_data.csv", row.names = F)
 ```
 
-### Analysis {.tabset}
+### Exploratory Analysis {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r echo = F, include = F}
+```{r chnk59, echo = F, include = F}
 all_sites <- sort(unique(full_dat$site_order))
 core_sites <- c("METC_STCR_23.6", "SACN_STCR_20.0", "SACN_STCR_15.8", "SACN_STCR_2.0", "METC_STCR_0.1")
 
-param_site_mat <- rbind(
-  data.frame(Location_ID = core_sites, param_name = "Alkalinity_mgL"),
-  data.frame(Location_ID = all_sites, param_name = "ChlA_ugL"),
-  data.frame(Location_ID = core_sites, param_name = "Cl_mgL"),
-  data.frame(Location_ID = core_sites, param_name = "DOC_mgL"),
-  data.frame(Location_ID = core_sites, param_name = "DO_mgL"),
-  data.frame(Location_ID = core_sites, param_name = "NO2+NO3_ugL"),
-  data.frame(Location_ID = core_sites, param_name = "P_ugL"),
-  data.frame(Location_ID = core_sites, param_name = "pH"),
-  data.frame(Location_ID = all_sites, param_name = "Secchi_m"),
-  data.frame(Location_ID = core_sites, param_name = "SO4_mgL"),
-  data.frame(Location_ID = core_sites, param_name = "SpecCond_uScm"),
-  data.frame(Location_ID = all_sites, param_name = "TempWater_C"),
-  data.frame(Location_ID = core_sites, param_name = "TSS_mgL"))
-
-core_params <- unique(param_site_mat$param_name[param_site_mat$Location_ID == "METC_STCR_23.6"])
+core_params <-  c("Alkalinity_mgL", "ChlA_ugL", "Cl_mgL", "DOC_mgL", "DO_mgL", "NO2+NO3_ugL",
+                  "P_ugL", "pH", "Secchi_m", "SO4_mgL", "SpecCond_uScm", "TempWater_C", "TSS_mgL")   
 ```
 </div><br>
 
 #### Loess smoothed trends core sites {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r echo = F}
+```{r chnk60, echo = F}
 dat <- read.csv("./data/local/GLKN_METC_combined_data.csv")
 dat$year_cen <- dat$year - min(dat$year)
 dat$date <- as.Date(dat$sample_date, format = "%Y-%m-%d")
@@ -852,7 +843,7 @@ format_data <- function(dat){dat |>
            cont_year = year+(doy/ylength), # same as cont_year in wqtrends package
            nonzero = ifelse(value > 0, 1, 0))}
 
-dat2 <- format_data(dat) |> filter(month %in% c(4:11))
+dat2 <- format_data(dat) |> filter(month %in% c(4:11)) |> filter(depth_cat %in% c("surface", "Surface") | is.na(depth_cat))
 
 all_sites <- sort(unique(dat2$site))
 #params_plot <- sort(unique(param_site_mat$param_name))
@@ -883,8 +874,8 @@ print(p)
 
 
 ```{r results = 'asis', fig.height = 8, fig.width = 10, echo = F}
-for(i in seq_along(params_plot)){
-  prm <- params_plot[[i]]
+for(i in seq_along(core_params)){
+  prm <- core_params[[i]]
   cat("##### ", prm, "\n\n")
   cat(paste0("Loess smoothed trends in surface <b>", prm, "</b> for each core monitoring site for April through November monitoring period.", "\n"))
   <<water_series_chunk>>
@@ -895,14 +886,14 @@ for(i in seq_along(params_plot)){
 ```
 
 #### GAMs on core params/sites {.tabset}
-```{r echo = F}
+```{r chnk84, echo = F}
 wqdat <- dat2 |> select(date, station = site, param = param_name, value, doy, cont_year, yr = year, mo = month) |> 
   filter(!is.na(value))
 ```
 
-##### Cl_mgL {.tabset}
+##### ChlA_mgL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk85, results = 'hide'}
 ylabel = "Chlorophyll-a (ug/L)"
 chla_metc23.6 <- wqdat |> filter(param == "ChlA_ugL") |> filter(station == "METC_23.6")
 chla_mod23.6 <- anlz_gam(chla_metc23.6)
@@ -951,24 +942,90 @@ chla_season <- arrangeGrob(chla_metc23.6_season, chla_sacn20.0_season, chla_sacn
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk86, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(chla_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk87, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(chla_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk88, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(chla_series)
+```
+
+
+##### Cl_mgL {.tabset}
+<div class = "toggle"><button>Show Code</button>
+```{r chnk89, results = 'hide'}
+ylabel = "Chloride (mg/L)"
+cl_metc23.6 <- wqdat |> filter(param == "Cl_mgL") |> filter(station == "METC_23.6")
+cl_mod23.6 <- anlz_gam(cl_metc23.6)
+anlz_smooth(cl_mod23.6)
+anlz_fit(cl_mod23.6)
+cl_metc23.6_doy <- show_prddoy(cl_mod23.6, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+cl_metc23.6_series <- show_prdseries(cl_mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+cl_metc23.6_season <- show_prdseason(cl_mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+
+cl_sacn20.0 <- wqdat |> filter(param == "Cl_mgL") |> filter(station == "SACN_20.0")
+cl_mod20.0 <- anlz_gam(cl_sacn20.0)
+anlz_smooth(cl_mod20.0)
+anlz_fit(cl_mod20.0)
+cl_sacn20.0_doy <- show_prddoy(cl_mod20.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+cl_sacn20.0_series <- show_prdseries(cl_mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+cl_sacn20.0_season <- show_prdseason(cl_mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+
+cl_sacn15.8 <- wqdat |> filter(param == "Cl_mgL") |> filter(station == "SACN_15.8")
+cl_mod15.8 <- anlz_gam(cl_sacn15.8)
+anlz_smooth(cl_mod15.8)
+anlz_fit(cl_mod15.8)
+cl_sacn15.8_doy <- show_prddoy(cl_mod15.8, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+cl_sacn15.8_series <- show_prdseries(cl_mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+cl_sacn15.8_season <- show_prdseason(cl_mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+
+cl_sacn2.0 <- wqdat |> filter(param == "Cl_mgL") |> filter(station == "SACN_2.0")
+cl_mod2.0 <- anlz_gam(cl_sacn2.0)
+anlz_smooth(cl_mod2.0)
+anlz_fit(cl_mod2.0)
+cl_sacn2.0_doy <- show_prddoy(cl_mod2.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+cl_sacn2.0_series <- show_prdseries(cl_mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+cl_sacn2.0_season <- show_prdseason(cl_mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+
+cl_metc0.1 <- wqdat |> filter(param == "Cl_mgL") |> filter(station == "METC_0.1")
+cl_mod0.1 <- anlz_gam(cl_metc0.1)
+anlz_smooth(cl_mod0.1)
+anlz_fit(cl_mod0.1)
+cl_metc0.1_doy <- show_prddoy(cl_mod0.1, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+cl_metc0.1_series <- show_prdseries(cl_mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+cl_metc0.1_season <- show_prdseason(cl_mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+
+cl_doy <- arrangeGrob(cl_metc23.6_doy, cl_sacn20.0_doy, cl_sacn15.8_doy, cl_sacn2.0_doy, cl_metc0.1_doy, ncol = 1)
+cl_series <- arrangeGrob(cl_metc23.6_series, cl_sacn20.0_series, cl_sacn15.8_series, cl_sacn2.0_series, cl_metc0.1_series, ncol = 1)
+cl_season <- arrangeGrob(cl_metc23.6_season, cl_sacn20.0_season, cl_sacn15.8_season, cl_sacn2.0_season, cl_metc0.1_season, ncol = 1)
+```
+</div><br>
+
+###### Day of year by year {.tabset}
+```{r chnk90, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+grid.draw(cl_doy)
+```
+
+###### Month by year {.tabset}
+```{r chnk91, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+grid.draw(cl_season)
+```
+
+###### Full time series {.tabset}
+```{r chnk92, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+grid.draw(cl_series)
 ```
 
 
 ##### DOC_mgL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk93, results = 'hide'}
 ylabel = "Dissolved Organic Carbon (mg/L)"
 doc_metc23.6 <- wqdat |> filter(param == "DOC_mgL") |> filter(station == "METC_23.6")
 doc_mod23.6 <- anlz_gam(doc_metc23.6)
@@ -1017,23 +1074,23 @@ doc_season <- arrangeGrob(doc_metc23.6_season, doc_sacn20.0_season, doc_sacn15.8
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk94, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(doc_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk95, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(doc_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk96, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(doc_series)
 ```
 
 ##### NO2+NO3_ugL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk97, results = 'hide'}
 ylabel = "NO2 + NO3 (ug/L)"
 nox_metc23.6 <- wqdat |> filter(param == "NO2+NO3_ugL") |> filter(station == "METC_23.6")
 nox_mod23.6 <- anlz_gam(nox_metc23.6)
@@ -1082,23 +1139,23 @@ nox_season <- arrangeGrob(nox_metc23.6_season, nox_sacn20.0_season, nox_sacn15.8
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk98, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(nox_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk99, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(nox_season)
 ```
  
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk100, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(nox_series)
 ```
 
 ##### P_ugL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk101, results = 'hide'}
 ylabel = "Total Phosphorus (ug/L)"
 tp_metc23.6 <- wqdat |> filter(param == "P_ugL") |> filter(station == "METC_23.6")
 tp_mod23.6 <- anlz_gam(tp_metc23.6)
@@ -1147,23 +1204,23 @@ tp_season <- arrangeGrob(tp_metc23.6_season, tp_sacn20.0_season, tp_sacn15.8_sea
 </div><br>
  
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk102, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(tp_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk103, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(tp_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk104, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(tp_series)
 ```
 
 ##### pH {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk105, results = 'hide'}
 ylabel = "pH"
 pH_metc23.6 <- wqdat |> filter(param == "pH") |> filter(station == "METC_23.6")
 pH_mod23.6 <- anlz_gam(pH_metc23.6)
@@ -1212,25 +1269,24 @@ pH_season <- arrangeGrob(pH_metc23.6_season, pH_sacn20.0_season, pH_sacn15.8_sea
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk106, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(pH_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk107, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(pH_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk108, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(pH_series)
 ```
 
-
 ##### SO4_mgL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
-ylabel = "Chlorophyll-a (ug/L)"
+```{r chnk113, results = 'hide'}
+ylabel = "Sulfate (mg/L)"
 so4_metc23.6 <- wqdat |> filter(param == "SO4_mgL") |> filter(station == "METC_23.6")
 so4_mod23.6 <- anlz_gam(so4_metc23.6)
 anlz_smooth(so4_mod23.6)
@@ -1278,24 +1334,24 @@ so4_season <- arrangeGrob(so4_metc23.6_season, so4_sacn20.0_season, so4_sacn15.8
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk114, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(so4_doy)
 ```
  
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk115, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(so4_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk116, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(so4_series)
 ```
 
 
 ##### SpecCond_uScm {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk117, results = 'hide'}
 ylabel = "Specific Conductance (uScm)"
 spec_metc23.6 <- wqdat |> filter(param == "SpecCond_uScm") |> filter(station == "METC_23.6")
 spec_mod23.6 <- anlz_gam(spec_metc23.6)
@@ -1344,24 +1400,89 @@ spec_season <- arrangeGrob(spec_metc23.6_season, spec_sacn20.0_season, spec_sacn
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk118, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(spec_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk119, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(spec_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk120, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(spec_series)
+```
+
+##### TempWater_C {.tabset}
+<div class = "toggle"><button>Show Code</button>
+```{r chnk121, results = 'hide'}
+ylabel = "Water Temperature (C)"
+wtmp_metc23.6 <- wqdat |> filter(param == "TempWater_C") |> filter(station == "METC_23.6")
+wtmp_mod23.6 <- anlz_gam(wtmp_metc23.6)
+anlz_smooth(wtmp_mod23.6)
+anlz_fit(wtmp_mod23.6)
+wtmp_metc23.6_doy <- show_prddoy(wtmp_mod23.6, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+wtmp_metc23.6_series <- show_prdseries(wtmp_mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+wtmp_metc23.6_season <- show_prdseason(wtmp_mod23.6, ylab = ylabel) + labs(title = "Site: METC_23.6") + theme(legend.position = 'none')
+
+wtmp_sacn20.0 <- wqdat |> filter(param == "TempWater_C") |> filter(station == "SACN_20.0")
+wtmp_mod20.0 <- anlz_gam(wtmp_sacn20.0)
+anlz_smooth(wtmp_mod20.0)
+anlz_fit(wtmp_mod20.0)
+wtmp_sacn20.0_doy <- show_prddoy(wtmp_mod20.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+wtmp_sacn20.0_series <- show_prdseries(wtmp_mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+wtmp_sacn20.0_season <- show_prdseason(wtmp_mod20.0, ylab = ylabel) + labs(title = "Site: SACN_20.0") + theme(legend.position = 'none')
+
+wtmp_sacn15.8 <- wqdat |> filter(param == "TempWater_C") |> filter(station == "SACN_15.8")
+wtmp_mod15.8 <- anlz_gam(wtmp_sacn15.8)
+anlz_smooth(wtmp_mod15.8)
+anlz_fit(wtmp_mod15.8)
+wtmp_sacn15.8_doy <- show_prddoy(wtmp_mod15.8, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+wtmp_sacn15.8_series <- show_prdseries(wtmp_mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+wtmp_sacn15.8_season <- show_prdseason(wtmp_mod15.8, ylab = ylabel) + labs(title = "Site: SACN_15.8") + theme(legend.position = 'none')
+
+wtmp_sacn2.0 <- wqdat |> filter(param == "TempWater_C") |> filter(station == "SACN_2.0")
+wtmp_mod2.0 <- anlz_gam(wtmp_sacn2.0)
+anlz_smooth(wtmp_mod2.0)
+anlz_fit(wtmp_mod2.0)
+wtmp_sacn2.0_doy <- show_prddoy(wtmp_mod2.0, ylab = ylabel, size = 1.5) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+wtmp_sacn2.0_series <- show_prdseries(wtmp_mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+wtmp_sacn2.0_season <- show_prdseason(wtmp_mod2.0, ylab = ylabel) + labs(title = "Site: SACN_2.0") + theme(legend.position = 'none')
+
+wtmp_metc0.1 <- wqdat |> filter(param == "TempWater_C") |> filter(station == "METC_0.1")
+wtmp_mod0.1 <- anlz_gam(wtmp_metc0.1)
+anlz_smooth(wtmp_mod0.1)
+anlz_fit(wtmp_mod0.1)
+wtmp_metc0.1_doy <- show_prddoy(wtmp_mod0.1, ylab = ylabel, size = 1.5) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+wtmp_metc0.1_series <- show_prdseries(wtmp_mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+wtmp_metc0.1_season <- show_prdseason(wtmp_mod0.1, ylab = ylabel) + labs(title = "Site: METC_0.1") + theme(legend.position = 'bottom')
+
+wtmp_doy <- arrangeGrob(wtmp_metc23.6_doy, wtmp_sacn20.0_doy, wtmp_sacn15.8_doy, wtmp_sacn2.0_doy, wtmp_metc0.1_doy, ncol = 1)
+wtmp_series <- arrangeGrob(wtmp_metc23.6_series, wtmp_sacn20.0_series, wtmp_sacn15.8_series, wtmp_sacn2.0_series, wtmp_metc0.1_series, ncol = 1)
+wtmp_season <- arrangeGrob(wtmp_metc23.6_season, wtmp_sacn20.0_season, wtmp_sacn15.8_season, wtmp_sacn2.0_season, wtmp_metc0.1_season, ncol = 1)
+```
+</div><br>
+
+###### Day of year by year {.tabset}
+```{r chnk122, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+grid.draw(wtmp_doy)
+```
+
+###### Month by year {.tabset}
+```{r chnk123, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+grid.draw(wtmp_season)
+```
+
+###### Full time series {.tabset}
+```{r chnk124, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+grid.draw(wtmp_series)
 ```
 
 
 ##### TSS_mgL {.tabset}
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk125, results = 'hide'}
 ylabel = "Total Suspended Solids"
 tss_metc23.6 <- wqdat |> filter(param == "TSS_mgL") |> filter(station == "METC_23.6")
 tss_mod23.6 <- anlz_gam(tss_metc23.6)
@@ -1410,17 +1531,17 @@ tss_season <- arrangeGrob(tss_metc23.6_season, tss_sacn20.0_season, tss_sacn15.8
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk126, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(tss_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk127, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(tss_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk128, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(tss_series)
 ```
 
@@ -1428,7 +1549,7 @@ grid.draw(tss_series)
 ##### Alkalinity_mgL {.tabset}
 Putting last because METC added in 2016
 <div class = "toggle"><button>Show Code</button>
-```{r results = 'hide'}
+```{r chnk129, results = 'hide'}
 ylabel = "Alkalinity (mg/L)"
 alk_metc23.6 <- wqdat |> filter(param == "Alkalinity_mgL") |> filter(station == "METC_23.6")
 alk_mod23.6 <- anlz_gam(alk_metc23.6)
@@ -1477,17 +1598,17 @@ alk_season <- arrangeGrob(alk_metc23.6_season, alk_sacn20.0_season, alk_sacn15.8
 </div><br>
 
 ###### Day of year by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
+```{r chnk130, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM by day of year."}
 grid.draw(alk_doy)
 ```
 
 ###### Month by year {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
+```{r chnk131, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM month by year."}
 grid.draw(alk_season)
 ```
 
 ###### Full time series {.tabset}
-```{r echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
+```{r chnk132, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(alk_series)
 ```
 
