@@ -1348,7 +1348,6 @@ grid.draw(so4_season)
 grid.draw(so4_series)
 ```
 
-
 ##### SpecCond_uScm {.tabset}
 <div class = "toggle"><button>Show Code</button>
 ```{r chnk117, results = 'hide'}
@@ -1611,6 +1610,27 @@ grid.draw(alk_season)
 ```{r chnk132, echo = F, fig.height = 12, fig.width=8, fig.cap = "GAM full time series."}
 grid.draw(alk_series)
 ```
+
+#### Profile Plots {.tabset}
+```{r lake_prof, echo = F, out.width = "100%", eval = F, fig.height = 10, fig.cap = "Lake plot of parameter by sample depth in 1m bins."}
+plotLakeProfile(site = lksc, parameter = prm)
+
+```
+
+<div class = "toggle"><button>Show Code</button>
+```{r results = 'asis', fig.height = 10, fig.width = 8, echo = F}
+prof_list <- c("DO_mgL", "DOsat_pct", "pH", "SpecCond_uScm", "TempWater_C")
+for(i in seq_along(prof_list)){
+  prm <- prof_list[[i]]
+  cat("##### ", prm, "\n\n")
+  cat(paste0("Profile plot of <b>", prm, " by sample depth in 1m bins.</b>."))
+  <<lake_prof>>
+  cat("\n\n")
+  cat("\n\n")
+}
+
+```
+</div><br>
 
 ### Notes
 Things to check on:
