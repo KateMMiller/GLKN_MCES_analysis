@@ -1613,8 +1613,8 @@ grid.draw(alk_series)
 
 #### Profile Plots {.tabset}
 ```{r lake_prof, echo = F, out.width = "100%", eval = F, fig.height = 10, fig.cap = "Lake plot of parameter by sample depth in 1m bins."}
-plotLakeProfile(site = lksc, parameter = prm)
-
+prof_p <- plotLakeProfile(site = lksc, parameter = prm)
+print(prof_p)
 ```
 
 <div class = "toggle"><button>Show Code</button>
@@ -1623,7 +1623,7 @@ prof_list <- c("DO_mgL", "DOsat_pct", "pH", "SpecCond_uScm", "TempWater_C")
 for(i in seq_along(prof_list)){
   prm <- prof_list[[i]]
   cat("##### ", prm, "\n\n")
-  cat(paste0("Profile plot of <b>", prm, " by sample depth in 1m bins.</b>."))
+  cat(paste0("Profile plot of <b>", prm, "</b> by sample depth in 1m bins."))
   <<lake_prof>>
   cat("\n\n")
   cat("\n\n")
