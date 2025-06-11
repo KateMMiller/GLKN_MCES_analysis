@@ -1612,25 +1612,64 @@ grid.draw(alk_series)
 ```
 
 #### Profile Plots {.tabset}
-```{r lake_prof, echo = F, out.width = "100%", eval = F, fig.height = 10, fig.cap = "Lake plot of parameter by sample depth in 1m bins."}
-prof_p <- plotLakeProfile(site = lksc, parameter = prm)
+```{r lake_prof1, echo = F, out.width = "100%", eval = F, fig.height = 10, fig.cap = "Lake plot of parameter by sample depth in 1m bins."}
+prof_p <- plotLakeProfile(site = lk_site, parameter = prm, color_rev = cr)
 print(prof_p)
 ```
 
-<div class = "toggle"><button>Show Code</button>
-```{r results = 'asis', fig.height = 10, fig.width = 8, echo = F}
+##### Site by years {.tabset}
+```{r results = 'asis', fig.height = 10, fig.width = 9, echo = F}
+colrev = c(T, T, F, F, F)
+
 prof_list <- c("DO_mgL", "DOsat_pct", "pH", "SpecCond_uScm", "TempWater_C")
 for(i in seq_along(prof_list)){
   prm <- prof_list[[i]]
-  cat("##### ", prm, "\n\n")
-  cat(paste0("Profile plot of <b>", prm, "</b> by sample depth in 1m bins."))
-  <<lake_prof>>
-  cat("\n\n")
-  cat("\n\n")
+  cr <- colrev[[i]]
+  cat("###### ", prm, "\n\n")
+    for(j in seq_along(lksc)){
+    lk_site = lksc[[j]]
+    cat(paste0("<details open><summary class='drop'>", lk_site, "</summary>"))
+    cat(paste0("Profile plot of <b>", prm, "</b> by sample depth in 1m bins with isothemerm indicated by black line (if present)."))
+    <<lake_prof1>>
+    cat("\n\n")
+    cat("</details>", "\n\n")
+    cat("\n\n")
+  }
 }
 
 ```
-</div><br>
+
+##### Years by sites {.tabset}
+```{r lake_prof2, echo = F, out.width = "100%", eval = F, fig.height = 10, fig.cap = "Lake plot of parameter by sample depth in 1m bins."}
+prof_p2 <- plotLakeProfile(site = lksc, parameter = prm, year = yr, color_rev = cr)
+print(prof_p2)
+```
+
+
+```{r results = 'asis', fig.height = 10, fig.width = 9, echo = F}
+year_range = range(full_dat$year)[1]:range(full_dat$year)[2]
+colrev = c(T, T, F, F, F)
+
+for(i in seq_along(prof_list)){
+  prm <- prof_list[[i]]
+  cr <- colrev[[i]]
+  cat("###### ", prm, "\n\n")
+    for(j in seq_along(year_range)){
+    yr = year_range[[j]]
+    cat(paste0("<details open><summary class='drop'>Year: ", yr, "</summary>"))
+    cat(paste0("Profile plot of <b>", prm, "</b> by sample depth in 1m bins with isotherm indicated by black line (if present)."))
+    <<lake_prof2>>
+    cat("\n\n")
+    cat("</details>", "\n\n")
+    cat("\n\n")
+  }
+}
+
+
+
+```
+
+
 
 ### Notes
 Things to check on:
