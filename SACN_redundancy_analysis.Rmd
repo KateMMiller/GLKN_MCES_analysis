@@ -32,6 +32,8 @@ For GLKN, we used the most recently published <a href="https://irma.nps.gov/Data
 
 Based on the <a href="https://dashboard.waterdata.usgs.gov/app/nwd/en/">USGS National Water Dashboard</a>, Lake St. Croix is bounded by two USGS stream gages, which can be used to model discharge. USGS 05341550 is at the start of Lake St. Croix, very close to METC_STCR_23.3, and is labeled USGS_STCR_23.35; USGS 05344490 is at the confluence near METC_STCR_0.3 and SACN_STCR_2.0 and is labeled USGS_STCR_0.3.   
 
+Except for profile plots, all analyses are based only on surface water samples.
+
 All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
 
 Date report was rendered: `r format(Sys.Date(), "%B %d, %Y")`
