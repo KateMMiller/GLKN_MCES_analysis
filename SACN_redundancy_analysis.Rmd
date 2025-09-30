@@ -17,6 +17,7 @@ options(width = 10)
 This document compares data collected in Lake St. Croix by the Great Lakes Network (GLKN) as part of their <a href="https://www.nps.gov/im/glkn/water-quality-rivers.htm">Water Quality (Rivers)</a> monitoring protocol with data collected by the <a href="https://metrocouncil.org/About-Us/What-We-Do/Departments/Environmental-Services.aspx">Metropolitan Council's Environmental Services (METC) Department</a>. 
 
 METC stations used for this analysis and their code for this analysis are: 
+
 <ul>
 <li>Station: SC0003 = METC_STCR_0.3</li>
 <li>Station: SC0233 & SC0234 = METC_STCR_23.3</li>
@@ -36,7 +37,7 @@ Except for profile plots, all analyses are based only on surface water samples.
 
 All code use for this analysis are posted on GitHub in the following repository: <a href="https://github.com/KateMMiller/GLKN_MCES_analysis">https://github.com/KateMMiller/GLKN_MCES_analysis</a>
 
-Date report was rendered: `r format(Sys.Date(), "%B %d, %Y")`
+<b>Date report was rendered: `r format(Sys.Date(), "%B %d, %Y")`</b>
 
 Sites included in this analysis are plotted in the map below.
 <div class = "toggle"><button>Show Code</button>
