@@ -31,8 +31,8 @@ core_params <-  c("Alkalinity_mgL", "ChlA_ugL", "Cl_mgL", "DOC_mgL", "DO_mgL", "
 param_labs = c("Alkalinity (mg/L)", "Chlorophyll-a (ug/L)", "Chloride (mg/L)",
                "Dissolved Organic Carbon (mg/L)", "Dissolved Oxygen (mg/L)",
                "Nitrite + Nitrate (ug/L)", "Total Phosphorous (ug/L)", "pH",
-               "Secchi Depth (m)",
-               "Sulfate (mg/L)", "Specific Conductance (uS/cm)", "Water Temp. (C)",
+               "Secchi Disc (m)",
+               "Sulfate (mg/L)", "Specific Conductivity (uS/cm)", "Temperature (C)",
                "Total Suspended Solids (mg/L)")
 
 label_df <- data.frame(param_abbr = core_params, label = param_labs)
@@ -86,8 +86,8 @@ dat4 <- dat3 |> filter(param_name %in% c("TempWater_C", "DO_mgL", "pH", "SpecCon
 table(dat4$label)
 
 dat4$label_ord <-
-  factor(dat4$label, levels = c("Water Temp. (C)", "pH",
-                                "Dissolved Oxygen (mg/L)", "Specific Conductance (uS/cm)"))
+  factor(dat4$label, levels = c("Temperature (C)", "pH",
+                                "Dissolved Oxygen (mg/L)", "Specific Conductivity (uS/cm)"))
 
 ggplot(dat4 |> filter(site %in% core_sites_abbr) |>
                filter(depth_cat %in% c("Surface", "surface") | is.na(depth_cat)) |>
